@@ -32,6 +32,11 @@ async function boot() {
       initUmpirePage();
       break;
     }
+    case "register": {
+      const { initRegisterPage } = await import("./ui/render.register.js");
+      initRegisterPage();
+      break;
+    }
     case "admin": {
       const { initAdminPage } = await import("./ui/render.admin.js");
       initAdminPage();

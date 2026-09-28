@@ -2,7 +2,7 @@
 // Simple pub-sub data layer over localStorage.
 // Swappable with sync.js (Firebase/Supabase) via the same get/set/on interface.
 
-const KEYS = ["sports", "participants", "fixtures", "matches", "settings"];
+const KEYS = ["sports", "participants", "fixtures", "matches", "settings", "registrations"];
 const listeners = {};
 
 function keyName(key) {

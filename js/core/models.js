@@ -47,3 +47,28 @@ export function validateParticipant(p) {
 export function validateFixture(f) {
   return !!(f && f.sportId && f.categoryId && Array.isArray(f.participants) && f.participants.length === 2);
 }
+
+export function createRegistration({ name, email = "", phone = "", gender = "X", dob = "", selections = [] }) {
+  // selections: [{ sportId, categoryIds: [...] }]
+  return {
+    id: uid("r"),
+    name,
+    email,
+    phone,
+    gender,
+    dob,
+    selections,
+    status: "pending", // pending | confirmed | rejected
+    createdAt: Date.now()
+  };
+}
+
+export function validateRegistration(r) {
+  return !!(
+    r &&
+    r.name && r.name.trim().length > 0 &&
+    Array.isArray(r.selections) &&
+    r.selections.length > 0 &&
+    r.selections.every(s => s.sportId && Array.isArray(s.categoryIds) && s.categoryIds.length > 0)
+  );
+}

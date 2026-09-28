@@ -1,11 +1,11 @@
 {
-  "name": "Sports Platform",
-  "short_name": "Sports",
+  "name": "Tristar Sports & Fitness",
+  "short_name": "Tristar S&F",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0d1117",
-  "theme_color": "#1f6feb",
+  "background_color": "#0b1220",
+  "theme_color": "#ff6a00",
   "icons": [
     { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png" }

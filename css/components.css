@@ -4,17 +4,23 @@
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
+  color: var(--color-text);
   cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .btn:hover {
   border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-1);
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: var(--gradient-brand);
+  border-color: transparent;
   color: #fff;
+  box-shadow: var(--shadow-glow);
 }
 
 .btn-secondary {
@@ -30,9 +36,10 @@
 .panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: var(--space-4);
   margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-1);
 }
 
 form {
@@ -48,14 +55,72 @@ form input, form select {
   border: 1px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text);
+  transition: border-color 0.15s ease;
+}
+
+form input:focus, form select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--color-bg);
+}
+
+.checkbox-group-title {
+  font-weight: 700;
+  margin-bottom: var(--space-1);
+  color: var(--color-secondary);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.checkbox-row label {
+  cursor: pointer;
+}
+
+.category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-left: var(--space-4);
+}
+
+.pill-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .match-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: var(--space-3);
   position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.match-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-1);
+  border-color: var(--color-primary);
 }
 
 .match-card-header {
@@ -68,7 +133,8 @@ form input, form select {
   font-size: 0.75rem;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--color-border);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
 }
 
 .badge-status {
@@ -118,6 +184,10 @@ form input, form select {
   font-weight: 700;
   text-align: center;
   margin: var(--space-4) 0;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .umpire-controls {

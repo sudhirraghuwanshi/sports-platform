@@ -39,6 +39,7 @@ function renderAll() {
   renderSportOptions();
   renderParticipantsList();
   renderFixturesList();
+  renderRegistrationsList();
 }
 
 function renderSportOptions() {
@@ -131,6 +132,51 @@ function renderFixturesList() {
     btn.addEventListener("click", () => {
       store.remove("fixtures", btn.dataset.removeFixture);
       renderFixturesList();
+    });
+  });
+}
+
+function renderRegistrationsList() {
+  const list = qs("#registrations-admin-list");
+  if (!list) return;
+  const registrations = store.get("registrations");
+  if (registrations.length === 0) {
+    list.innerHTML = `<div class="empty-state">No registrations yet.</div>`;
+    return;
+  }
+  list.innerHTML = registrations.slice().reverse().map(r => {
+    const selectionsText = r.selections.map(s => {
+      const sport = getSport(s.sportId);
+      const labels = s.categoryIds.map(cid => sport?.categories.find(c => c.id === cid)?.label || cid).join(", ");
+      return `<span class="sport-${s.sportId} badge">${sport ? sport.name : s.sportId}</span> ${labels}`;
+    }).join("<br/>");
+    return `
+      <div class="match-card">
+        <div class="match-card-header">
+          <strong>${r.name}</strong>
+          <span class="badge-status">${r.status}</span>
+        </div>
+        <div class="match-meta">${r.email || ""} ${r.phone || ""}</div>
+        <div class="match-meta">${selectionsText}</div>
+        <div class="umpire-controls" style="margin-top: var(--space-2);">
+          <button class="btn" data-confirm-reg="${r.id}">Confirm</button>
+          <button class="btn btn-secondary" data-remove-reg="${r.id}">Remove</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  qsa("[data-confirm-reg]", list).forEach(btn => {
+    btn.addEventListener("click", () => {
+      store.update("registrations", btn.dataset.confirmReg, { status: "confirmed" });
+      renderRegistrationsList();
+    });
+  });
+
+  qsa("[data-remove-reg]", list).forEach(btn => {
+    btn.addEventListener("click", () => {
+      store.remove("registrations", btn.dataset.removeReg);
+      renderRegistrationsList();
     });
   });
 }

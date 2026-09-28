@@ -4,9 +4,38 @@
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: rgba(16, 26, 46, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   flex-wrap: wrap;
   gap: var(--space-2);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.brand-logo {
+  height: 40px;
+  width: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: var(--shadow-glow);
+}
+
+.brand-name {
+  font-weight: 800;
+  font-size: 1.1rem;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.01em;
 }
 
 .app-header nav {
@@ -14,10 +43,22 @@
   gap: var(--space-3);
 }
 
-.app-header nav a.active {
-  color: var(--color-text);
+.app-header nav a {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+  color: var(--color-text-dim);
   font-weight: 600;
-  border-bottom: 2px solid var(--color-primary);
+}
+
+.app-header nav a:hover {
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+}
+
+.app-header nav a.active {
+  color: #fff;
+  background: var(--gradient-brand);
+  border-bottom: none;
 }
 
 .container {
@@ -28,7 +69,21 @@
 
 .hero {
   text-align: center;
-  padding: var(--space-4) 0;
+  padding: var(--space-4) var(--space-3);
+  margin: var(--space-3) 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, rgba(255, 106, 0, 0.14), rgba(0, 217, 192, 0.08));
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-1);
+}
+
+.hero h2 {
+  font-size: 2rem;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
 }
 
 .hero-actions {
@@ -51,7 +106,7 @@
   flex-wrap: wrap;
   align-items: center;
   position: sticky;
-  top: 0;
+  top: 72px;
   background: var(--color-bg);
   padding: var(--space-2) 0;
   z-index: 10;

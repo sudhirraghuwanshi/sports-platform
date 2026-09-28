@@ -1,18 +1,26 @@
 :root {
-  --color-bg: #0d1117;
-  --color-surface: #161b22;
-  --color-border: #30363d;
-  --color-text: #c9d1d9;
-  --color-text-dim: #8b949e;
-  --color-primary: #1f6feb;
-  --color-primary-hover: #388bfd;
-  --color-live: #f85149;
-  --color-success: #2ea043;
-  --radius: 8px;
+  --color-bg: #0b1220;
+  --color-bg-alt: #101a2e;
+  --color-surface: #16223b;
+  --color-surface-alt: #1c2c4a;
+  --color-border: #2b3a5c;
+  --color-text: #e7ecf7;
+  --color-text-dim: #93a1c4;
+  --color-primary: #ff6a00;
+  --color-primary-hover: #ff8a3d;
+  --color-secondary: #00d9c0;
+  --color-live: #ff3b5c;
+  --color-success: #2ecc71;
+  --gradient-brand: linear-gradient(135deg, #ff6a00 0%, #ff3b5c 50%, #7b2ff7 100%);
+  --gradient-accent: linear-gradient(135deg, #00d9c0 0%, #1f6feb 100%);
+  --radius: 12px;
+  --radius-lg: 20px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 16px;
   --space-4: 24px;
+  --shadow-1: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 0 1px rgba(255, 106, 0, 0.25), 0 8px 24px rgba(255, 106, 0, 0.15);
 }
 
 * {
@@ -25,15 +33,20 @@ html, body {
 }
 
 body {
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 106, 0, 0.12), transparent 40%),
+    radial-gradient(circle at 85% 10%, rgba(0, 217, 192, 0.10), transparent 45%),
+    var(--color-bg);
   color: var(--color-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
+  min-height: 100vh;
 }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-secondary);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 a:hover {
@@ -42,6 +55,7 @@ a:hover {
 
 h1, h2, h3 {
   margin: 0 0 var(--space-2);
+  letter-spacing: -0.02em;
 }
 
 input, select, button {

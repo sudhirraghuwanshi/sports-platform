@@ -3,19 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — Sports Platform</title>
+  <title>Admin — Tristar Sports & Fitness</title>
   <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#1f6feb" />
+  <meta name="theme-color" content="#ff6a00" />
+  <link rel="icon" type="image/png" href="./icons/favicon-32.png" />
   <link rel="stylesheet" href="./css/base.css" />
   <link rel="stylesheet" href="./css/layout.css" />
   <link rel="stylesheet" href="./css/components.css" />
 </head>
 <body data-page="admin">
   <header class="app-header">
-    <h1>🏆 Admin Panel</h1>
+    <div class="brand">
+      <img class="brand-logo" src="./icons/icon-192.png" alt="Tristar Sports & Fitness logo" />
+      <span class="brand-name">Admin Panel</span>
+    </div>
     <nav>
       <a href="./fixtures.html">Fixtures</a>
       <a href="./live.html">Live Scores</a>
+      <a href="./register.html">Register</a>
       <a href="./admin.html" class="active">Admin</a>
     </nav>
   </header>
@@ -61,6 +66,11 @@
           </form>
           <ul id="fixtures-admin-list"></ul>
         </div>
+      </div>
+
+      <div class="panel" style="margin-top: var(--space-4);">
+        <h3>Player Registrations</h3>
+        <div id="registrations-admin-list" class="card-grid"></div>
       </div>
     </section>
   </main>

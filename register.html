@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Tristar Sports & Fitness</title>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#ff6a00" />
+  <link rel="icon" type="image/png" href="./icons/favicon-32.png" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/sport-themes.css" />
+</head>
+<body data-page="register">
+  <header class="app-header">
+    <div class="brand">
+      <img class="brand-logo" src="./icons/icon-192.png" alt="Tristar Sports & Fitness logo" />
+      <span class="brand-name">Tristar Sports &amp; Fitness</span>
+    </div>
+    <nav>
+      <a href="./fixtures.html">Fixtures</a>
+      <a href="./live.html">Live Scores</a>
+      <a href="./register.html" class="active">Register</a>
+      <a href="./admin.html">Admin</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h2>Player Registration</h2>
+      <p>Sign up and pick every sport &amp; category you want to compete in.</p>
+    </section>
+
+    <section class="panel">
+      <form id="registration-form" style="max-width: 640px;">
+        <input id="reg-name" type="text" placeholder="Full name" required />
+        <input id="reg-email" type="email" placeholder="Email" />
+        <input id="reg-phone" type="tel" placeholder="Phone number" />
+        <select id="reg-gender">
+          <option value="M">Male</option>
+          <option value="F">Female</option>
+          <option value="X">Other</option>
+        </select>
+        <input id="reg-dob" type="date" placeholder="Date of birth" />
+
+        <div id="reg-sports-list"></div>
+
+        <p id="registration-error" class="error"></p>
+        <button class="btn btn-primary" type="submit">Submit Registration</button>
+      </form>
+      <p id="registration-success" class="hint hidden"></p>
+    </section>
+
+    <section class="panel">
+      <h3>My Registrations (this device)</h3>
+      <div id="my-registrations" class="card-grid"></div>
+    </section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
