@@ -39,6 +39,15 @@ export function initAdminPage() {
   bindGenerateFixturesForm();
   bindCloudSyncForm();
   bindClearRegistrationsButton();
+
+  // Cloud sync connects asynchronously (it lazy-loads Firebase from a CDN),
+  // so remote data — e.g. registrations submitted from another device —
+  // can arrive well after this page's initial render. Re-render the
+  // affected lists whenever the underlying store data changes so nothing
+  // gets silently missed.
+  store.on("registrations:changed", renderRegistrationsList);
+  store.on("participants:changed", renderParticipantsList);
+  store.on("fixtures:changed", renderFixturesList);
 }
 
 function renderAll() {
