@@ -57,8 +57,8 @@ The first time you open admin.html, a default password `admin123` is set automat
 ## Enabling Cloud Sync (optional, for cross-device live updates)
 By default all data is stored in the browser's localStorage — **each device/browser has
 its own separate copy**, which is why scores entered on one phone/laptop won't show up
-on another. To make live scores, fixtures, and registrations sync across every device
-in real time:
+on another. To make live scores, fixtures, and registrations sync across **every visitor
+automatically, with zero per-device setup**:
 
 1. Go to the [Firebase Console](https://console.firebase.google.com/), create a free project.
 2. In the project, open **Build → Realtime Database** and click **Create Database**
@@ -66,14 +66,27 @@ in real time:
 3. Open **Project settings → General**, scroll to "Your apps", click the web icon (`</>`)
    to register a web app, and copy the resulting config values
    (apiKey, authDomain, databaseURL, projectId, appId, etc.).
-4. Open [admin.html](admin.html) on your site, log in, scroll to **Cloud Sync**, paste
-   those values in, and click **Save & Enable Cloud Sync**.
-5. Reload the page. All connected devices/browsers that also have cloud sync enabled
-   (with the same Firebase project) will now see fixtures, scores, and registrations
-   update live, no redeploy needed.
+4. Paste those values into [js/config/firebase.config.js](js/config/firebase.config.js)
+   in this repo, commit, and push:
+   ```js
+   export const firebaseConfig = {
+     apiKey: "AIzaSy...",
+     authDomain: "your-project.firebaseapp.com",
+     databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+     projectId: "your-project",
+     storageBucket: "your-project.appspot.com",
+     messagingSenderId: "123456789",
+     appId: "1:123456789:web:abcdef123456"
+   };
+   ```
+5. Once deployed, **every visitor's browser auto-connects** to the same shared
+   database on page load — no admin login or per-device configuration required.
+   Fixtures, live scores, and registrations will sync in real time everywhere.
 
-Firebase client config keys are safe to expose publicly; secure your data
+Firebase client config keys are safe to commit/expose publicly; secure your data
 using Firebase Realtime Database security rules instead of hiding the config.
+The Admin panel also has an optional "Cloud Sync" override form if you ever want
+a single browser to temporarily point at a different database for testing.
 
 ## License
 MIT

@@ -3,12 +3,21 @@
 // based on which HTML page is loaded (each page includes this same script).
 import * as store from "./core/store.js";
 import * as sync from "./core/sync.js";
+import { firebaseConfig } from "./config/firebase.config.js";
 
 store.init();
 
+// Cloud sync auto-connects for every visitor using the config baked into
+// js/config/firebase.config.js (no per-device setup required). An admin can
+// still override this at runtime via the Admin panel's Cloud Sync form,
+// which takes priority if it has been explicitly configured there.
 const settings = store.get("settings");
-if (settings?.cloudMode && settings?.firebaseConfig) {
-  sync.init(settings.firebaseConfig).then(ok => {
+const activeFirebaseConfig = settings?.cloudMode && settings?.firebaseConfig
+  ? settings.firebaseConfig
+  : firebaseConfig;
+
+if (activeFirebaseConfig?.apiKey) {
+  sync.init(activeFirebaseConfig).then(ok => {
     if (ok) console.info("Cloud sync enabled — updates will appear on all devices.");
   });
 }

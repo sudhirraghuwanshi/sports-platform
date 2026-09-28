@@ -112,10 +112,10 @@
       <div class="panel" style="margin-top: var(--space-4);">
         <h3>Cloud Sync (cross-device live updates)</h3>
         <p class="hint">
-          By default data only lives in this browser's storage. To see live scores update
-          on other phones/laptops in real time, connect a free
-          <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase</a>
-          Realtime Database and paste its config below.
+          The site owner sets a shared Firebase config once in
+          <code>js/config/firebase.config.js</code> so every visitor automatically
+          syncs — no setup needed on individual devices. Use the form below only if
+          you want to override that with a different database for testing.
         </p>
         <form id="cloud-sync-form" style="max-width: 480px;">
           <input id="cs-apiKey" type="text" placeholder="apiKey" />
