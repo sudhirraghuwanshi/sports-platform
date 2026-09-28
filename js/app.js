@@ -28,6 +28,17 @@ if ("serviceWorker" in navigator) {
       console.warn("Service worker registration failed", err);
     });
   });
+
+  // Once a newly-deployed service worker takes control of this page, reload
+  // automatically so the visitor always ends up running the latest JS —
+  // no more "still not working" from a stale cached script needing a
+  // second manual refresh after a deploy.
+  let refreshedOnce = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshedOnce) return;
+    refreshedOnce = true;
+    window.location.reload();
+  });
 }
 
 const page = document.body.dataset.page;

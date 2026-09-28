@@ -1,7 +1,7 @@
 // service-worker.js
 // Network-first for HTML/navigation (always fresh), stale-while-revalidate for other assets.
 // Bump CACHE_NAME on every deploy so old caches are dropped automatically.
-const CACHE_NAME = "sports-platform-v9";
+const CACHE_NAME = "sports-platform-v10";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -77,7 +77,23 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Other assets (css/js/icons) — stale-while-revalidate: serve cached copy
+  // JavaScript modules — network-first, same as navigation. These files
+  // drive all app logic (scoring, sync, etc.), so a visitor must never run
+  // a stale cached copy after a deploy; only fall back to cache if offline.
+  if (event.request.destination === "script" || event.request.url.endsWith(".js")) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Other assets (css/icons) — stale-while-revalidate: serve cached copy
   // instantly but refresh the cache in the background for next time.
   event.respondWith(
     caches.match(event.request).then(cached => {
