@@ -11,6 +11,7 @@ import { firebaseConfig } from "./config/firebase.config.js";
 // stuck on a stale cached copy — the single biggest source of "I fixed it
 // but it's still not working" confusion in this project's history.
 const APP_BUILD = "v23";
+console.log(`%c[Tristar Sports] app.js loaded — build ${APP_BUILD}`, "font-weight:bold;color:#ff6a00;");
 
 // Surface ANY uncaught error/rejection visibly on the page instead of it
 // silently aborting script execution. This has previously masked real
