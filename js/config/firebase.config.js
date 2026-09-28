@@ -10,11 +10,11 @@
 // Leave apiKey empty ("") to keep the app running in local-only mode.
 
 export const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  databaseURL: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyAVS6C5M7dsxBViEtumLxzqIVVzgq1MaQk",
+  authDomain: "sports-platform-4334.firebaseapp.com",
+  databaseURL: "https://sports-platform-4334-default-rtdb.firebaseio.com",
+  projectId: "sports-platform-4334",
+  storageBucket: "sports-platform-4334.firebasestorage.app",
+  messagingSenderId: "618153873193",
+  appId: "1:618153873193:web:c3b45b73537005f5ff3138"
 };
