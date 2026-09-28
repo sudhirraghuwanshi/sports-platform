@@ -1,7 +1,7 @@
 // service-worker.js
 // Network-first for HTML/navigation (always fresh), stale-while-revalidate for other assets.
 // Bump CACHE_NAME on every deploy so old caches are dropped automatically.
-const CACHE_NAME = "sports-platform-v2";
+const CACHE_NAME = "sports-platform-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -34,7 +34,8 @@ const APP_SHELL = [
   "./js/ui/render.live.js",
   "./js/ui/render.umpire.js",
   "./js/ui/render.admin.js",
-  "./js/ui/render.register.js"
+  "./js/ui/render.register.js",
+  "./js/ui/matchModal.js"
 ];
 
 self.addEventListener("install", event => {

@@ -45,6 +45,16 @@ function renderAll() {
   renderFixturesList();
   renderRegistrationsList();
   renderGenParticipantsList();
+  renderFixtureSideSelects();
+}
+
+function renderFixtureSideSelects() {
+  const participants = store.get("participants");
+  const options = participants.map(p => `<option value="${p.id}">${p.name} (${p.gender})</option>`).join("");
+  const sideA = qs("#fixture-side-a");
+  const sideB = qs("#fixture-side-b");
+  if (sideA) sideA.innerHTML = options;
+  if (sideB) sideB.innerHTML = options;
 }
 
 function renderSportOptions(sportSelector, categorySelector) {
@@ -116,6 +126,7 @@ function renderParticipantsList() {
     });
   }
   renderGenParticipantsList();
+  renderFixtureSideSelects();
 }
 
 function renderGenParticipantsList() {
@@ -144,8 +155,8 @@ function bindFixtureForm() {
     const round = qs("#fixture-round").value;
     const scheduledAt = qs("#fixture-datetime").value;
     const venue = qs("#fixture-venue").value;
-    const sideAIds = qs("#fixture-side-a").value.split(",").map(s => s.trim()).filter(Boolean);
-    const sideBIds = qs("#fixture-side-b").value.split(",").map(s => s.trim()).filter(Boolean);
+    const sideAIds = qsa("#fixture-side-a option:checked").map(o => o.value);
+    const sideBIds = qsa("#fixture-side-b option:checked").map(o => o.value);
 
     const fixture = createFixture({
       sportId, categoryId, round,

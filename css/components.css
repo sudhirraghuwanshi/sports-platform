@@ -133,10 +133,18 @@ form textarea:focus {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
+.match-card {
+  cursor: pointer;
+}
+
 .match-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-1);
   border-color: var(--color-primary);
+}
+
+.match-card:active {
+  transform: translateY(-1px);
 }
 
 .match-card-header {

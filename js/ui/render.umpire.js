@@ -3,7 +3,7 @@ import * as store from "../core/store.js";
 import * as auth from "../core/auth.js";
 import { getSport } from "../config/sports.config.js";
 import { createMatch } from "../core/models.js";
-import { createInitialState, applyEvent } from "../scoring/scoring.engine.js";
+import { createInitialState, applyEvent, undoLastPoint } from "../scoring/scoring.engine.js";
 import { qs } from "../core/utils.js";
 
 let activeFixtureId = null;
@@ -81,6 +81,7 @@ function renderConsole() {
   if (!listenersBound) {
     qs("#btn-point-a")?.addEventListener("click", () => handlePoint("A"));
     qs("#btn-point-b")?.addEventListener("click", () => handlePoint("B"));
+    qs("#btn-undo")?.addEventListener("click", handleUndo);
     listenersBound = true;
   }
 }
@@ -103,6 +104,28 @@ function handlePoint(side) {
 
   if (match.endedAt) {
     store.update("fixtures", match.fixtureId, { status: "completed" });
+  }
+}
+
+function handleUndo() {
+  const fixtures = store.get("fixtures");
+  const fixture = fixtures.find(f => f.id === activeFixtureId);
+  if (!fixture) return;
+  const matches = store.get("matches");
+  const match = matches.find(m => m.id === fixture.matchId);
+  if (!match) return;
+
+  const wasCompleted = !!match.endedAt;
+  const undone = undoLastPoint(match);
+  if (!undone) {
+    alert("Nothing to undo yet.");
+    return;
+  }
+
+  store.set("matches", matches.map(m => (m.id === match.id ? match : m)));
+
+  if (wasCompleted && !match.endedAt) {
+    store.update("fixtures", match.fixtureId, { status: "live" });
   }
 }
 

@@ -2,7 +2,8 @@
 import * as store from "../core/store.js";
 import { SPORTS, getSport, getCategory } from "../config/sports.config.js";
 import { filterFixtures, populateSportSelect, populateCategorySelect } from "./filters.js";
-import { formatDate, qs } from "../core/utils.js";
+import { openMatchModal } from "./matchModal.js";
+import { formatDate, qs, qsa } from "../core/utils.js";
 
 let currentFilters = {};
 
@@ -54,6 +55,10 @@ function render() {
     .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
     .map(f => renderFixtureCard(f, participants))
     .join("");
+
+  qsa("[data-fixture-id]", container).forEach(card => {
+    card.addEventListener("click", () => openMatchModal(card.dataset.fixtureId));
+  });
 }
 
 function participantNames(ids, participants) {

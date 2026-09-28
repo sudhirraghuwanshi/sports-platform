@@ -36,7 +36,8 @@ export function createMatch({ fixtureId, sportId, initialState }) {
     endedAt: null,
     state: initialState,
     result: { winnerSide: null, summary: "" },
-    events: []
+    events: [],
+    pointHistory: []
   };
 }
 

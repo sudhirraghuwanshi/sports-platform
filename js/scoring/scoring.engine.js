@@ -25,10 +25,17 @@ export function createInitialState(sportId) {
   }
 }
 
+const POINT_BASED_SPORTS = new Set(["badminton", "table_tennis", "squash", "tennis"]);
+
 // Generic entry point: applyEvent(match, eventType, payload)
 export function applyEvent(match, eventType, payload = {}) {
   const sport = getSport(match.sportId);
   if (!sport) throw new Error(`Unknown sport: ${match.sportId}`);
+
+  if (eventType === "point" && POINT_BASED_SPORTS.has(match.sportId)) {
+    match.pointHistory = match.pointHistory || [];
+    match.pointHistory.push(payload.side);
+  }
 
   switch (match.sportId) {
     case "badminton":
@@ -64,4 +71,24 @@ export function applyEvent(match, eventType, payload = {}) {
   }
   console.warn(`Unhandled event ${eventType} for sport ${match.sportId}`);
   return match;
+}
+
+// Undo the last scored point for point-based racquet sports by rebuilding
+// state from scratch and replaying every point except the most recent one.
+// Returns true if an undo was performed, false if there was nothing to undo
+// or the sport does not support point-history based undo.
+export function undoLastPoint(match) {
+  if (!POINT_BASED_SPORTS.has(match.sportId)) return false;
+  const history = match.pointHistory || [];
+  if (history.length === 0) return false;
+
+  const replay = history.slice(0, -1);
+  match.state = createInitialState(match.sportId);
+  match.events = [];
+  match.result = { winnerSide: null, summary: "" };
+  match.endedAt = null;
+  match.pointHistory = [];
+
+  replay.forEach(side => applyEvent(match, "point", { side }));
+  return true;
 }

@@ -1,7 +1,8 @@
 // js/ui/render.live.js
 import * as store from "../core/store.js";
 import { getSport, getCategory } from "../config/sports.config.js";
-import { qs } from "../core/utils.js";
+import { openMatchModal } from "./matchModal.js";
+import { qs, qsa } from "../core/utils.js";
 
 export function initLivePage() {
   store.on("matches:changed", render);
@@ -22,6 +23,10 @@ function render() {
   }
 
   container.innerHTML = matches.map(m => renderLiveCard(m, fixtures)).join("");
+
+  qsa("[data-fixture-id]", container).forEach(card => {
+    card.addEventListener("click", () => openMatchModal(card.dataset.fixtureId));
+  });
 }
 
 function renderLiveCard(match, fixtures) {
@@ -30,7 +35,7 @@ function renderLiveCard(match, fixtures) {
   const category = fixture ? getCategory(fixture.sportId, fixture.categoryId) : null;
 
   return `
-    <div class="match-card live" data-match-id="${match.id}">
+    <div class="match-card live" data-fixture-id="${fixture?.id || ""}" data-match-id="${match.id}">
       <span class="badge-live">LIVE</span>
       <h3>${sport?.name || match.sportId} — ${category?.label || ""}</h3>
       <div class="score-row">${renderScoreLine(match)}</div>

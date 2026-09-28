@@ -67,8 +67,10 @@
             <input id="fixture-round" type="text" placeholder="Round (e.g. Quarterfinal)" />
             <input id="fixture-datetime" type="datetime-local" required />
             <input id="fixture-venue" type="text" placeholder="Venue" />
-            <input id="fixture-side-a" type="text" placeholder="Side A participant IDs (comma-separated)" required />
-            <input id="fixture-side-b" type="text" placeholder="Side B participant IDs (comma-separated)" required />
+            <label class="hint">Side A player(s) (Ctrl/Cmd-click for multiple)</label>
+            <select id="fixture-side-a" multiple size="4" required></select>
+            <label class="hint">Side B player(s) (Ctrl/Cmd-click for multiple)</label>
+            <select id="fixture-side-b" multiple size="4" required></select>
             <button class="btn btn-primary" type="submit">Create Fixture</button>
           </form>
           <ul id="fixtures-admin-list"></ul>
