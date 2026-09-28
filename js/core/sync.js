@@ -45,7 +45,15 @@ function reportError(context, err) {
 // Merge local + remote item lists by id: for each id present on either
 // side, keep whichever copy has the newer `updatedAt` (ties favor local so
 // we never lose in-flight edits due to a stale/incomplete remote read).
+function toArray(val) {
+  if (Array.isArray(val)) return val;
+  if (val && typeof val === "object") return Object.values(val);
+  return [];
+}
+
 function mergeById(localArr, remoteArr) {
+  localArr = toArray(localArr);
+  remoteArr = toArray(remoteArr);
   const byId = new Map();
   localArr.forEach(item => byId.set(item.id, item));
   remoteArr.forEach(item => {
@@ -85,6 +93,7 @@ export async function init(firebaseConfig) {
       const lastSyncedById = new Map();
 
       function pushLocalDiff(currentArr) {
+        currentArr = toArray(currentArr);
         const currentIds = new Set();
         currentArr.forEach(item => {
           currentIds.add(item.id);

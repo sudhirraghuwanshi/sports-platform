@@ -17,12 +17,22 @@ function emit(key) {
 }
 
 export function get(key) {
+  const fallback = key === "settings" ? {} : [];
   try {
     const raw = localStorage.getItem(keyName(key));
-    return raw ? JSON.parse(raw) : (key === "settings" ? {} : []);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    // Defensive: some earlier code paths accidentally stored an object map
+    // (e.g. Firebase-shaped { id1: {...}, id2: {...} }) instead of an array
+    // for list keys. Coerce it back into an array so callers can always
+    // rely on list keys being real arrays.
+    if (key !== "settings" && parsed && !Array.isArray(parsed) && typeof parsed === "object") {
+      return Object.values(parsed);
+    }
+    return parsed ?? fallback;
   } catch (e) {
     console.error("store.get failed", key, e);
-    return key === "settings" ? {} : [];
+    return fallback;
   }
 }
 
