@@ -120,7 +120,6 @@ export function init() {
     if (match) emit(match);
   });
 }
-}
 
 // Convenience helpers
 export function add(key, item) {
