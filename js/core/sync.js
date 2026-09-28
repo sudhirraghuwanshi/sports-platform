@@ -3,8 +3,14 @@
 // Disabled by default. Enable via admin settings -> cloudMode = true,
 // and provide firebaseConfig in settings.
 //
-// This module mirrors the store.js interface (get/set/on) so UI code
-// does not need to change when cloud mode is toggled on.
+// Design: each collection (fixtures, matches, ...) is stored in Firebase as
+// an object map keyed by item id (matches/<id>, fixtures/<id>, ...) rather
+// than as a single array blob. Every local change is diffed against the
+// last-synced snapshot and only the specific items that changed are pushed
+// to their own child path. This avoids whole-collection overwrites, so a
+// lagging/incomplete remote read can never wipe out a record (e.g. a match
+// you just created and are actively scoring) — the worst case is a brief
+// delay before other devices see the very newest edit.
 
 import * as store from "./store.js";
 
@@ -18,20 +24,9 @@ export function isEnabled() {
   return enabled;
 }
 
-// Firebase Realtime Database can return arrays as plain objects keyed by
-// index (e.g. after items were removed leaving gaps). Normalize back to
-// a real array either way.
-function normalizeToArray(val) {
-  if (Array.isArray(val)) return val;
-  if (val && typeof val === "object") return Object.values(val);
-  return [];
-}
-
-// Merge two arrays of records (each with an `id`) by taking, for every id
-// present on either side, whichever copy has the newer `updatedAt`.
-// Items that only exist on one side are always kept (never silently
-// dropped) — this is what prevents a stale/lagging remote snapshot from
-// wiping out a record (e.g. a match) that was only just created locally.
+// Merge local + remote item lists by id: for each id present on either
+// side, keep whichever copy has the newer `updatedAt` (ties favor local so
+// we never lose in-flight edits due to a stale/incomplete remote read).
 function mergeById(localArr, remoteArr) {
   const byId = new Map();
   localArr.forEach(item => byId.set(item.id, item));
@@ -63,50 +58,56 @@ export async function init(firebaseConfig) {
     firebaseApp = initializeApp(firebaseConfig);
     db = getDatabase(firebaseApp);
 
-    // Track the JSON we most recently sent/received per key so we can avoid
-    // feedback loops between local writes <-> remote echoes.
-    const lastPushed = {};
-    const lastReceived = {};
-
     SYNCED_KEYS.forEach(key => {
-      const r = ref(db, key);
+      const collectionRef = ref(db, key);
 
-      onValue(r, snapshot => {
-        const remoteArr = normalizeToArray(snapshot.val());
-        const remoteJson = JSON.stringify(remoteArr);
+      // Tracks the updatedAt we last knew was synced for each item id, so
+      // we only push items whose updatedAt has actually advanced and only
+      // remove children that were genuinely deleted locally.
+      const lastSyncedById = new Map();
 
-        // Ignore the echo of a write we just made ourselves.
-        if (remoteJson === lastPushed[key]) return;
+      function pushLocalDiff(currentArr) {
+        const currentIds = new Set();
+        currentArr.forEach(item => {
+          currentIds.add(item.id);
+          const known = lastSyncedById.get(item.id);
+          const itemTs = item.updatedAt || 0;
+          if (known === undefined || known !== itemTs) {
+            lastSyncedById.set(item.id, itemTs);
+            dbSet(ref(db, `${key}/${item.id}`), item);
+          }
+        });
+        // Propagate local deletions.
+        Array.from(lastSyncedById.keys()).forEach(id => {
+          if (!currentIds.has(id)) {
+            lastSyncedById.delete(id);
+            dbSet(ref(db, `${key}/${id}`), null);
+          }
+        });
+      }
 
+      onValue(collectionRef, snapshot => {
+        const val = snapshot.val() || {};
+        const remoteArr = Object.values(val);
         const localArr = store.get(key);
         const merged = mergeById(localArr, remoteArr);
-        const mergedJson = JSON.stringify(merged);
 
-        // Prevent the store.set below from re-triggering a push of data
-        // that's simply what we just received/merged.
-        lastReceived[key] = mergedJson;
+        // Record what we now believe is synced for every item in the
+        // merged result so the local "changed" handler below won't
+        // needlessly re-push items that just arrived from Firebase.
+        merged.forEach(item => lastSyncedById.set(item.id, item.updatedAt || 0));
 
-        if (mergedJson !== JSON.stringify(localArr)) {
+        if (JSON.stringify(merged) !== JSON.stringify(localArr)) {
           store.set(key, merged); // updates local cache + notifies UI
         }
-
-        // If the merge added/kept anything the remote didn't have (e.g. a
-        // brand-new local match), push the reconciled version back up so
-        // every other device converges on the same data too.
-        if (mergedJson !== remoteJson) {
-          lastPushed[key] = mergedJson;
-          dbSet(r, merged);
-        }
       });
 
-      // Push local changes up to Firebase, but skip re-pushing data that
-      // just arrived from Firebase itself (prevents ping-pong loops).
-      store.on(`${key}:changed`, data => {
-        const json = JSON.stringify(data);
-        if (json === lastReceived[key]) return;
-        lastPushed[key] = json;
-        dbSet(r, data);
-      });
+      // One-time bootstrap: push whatever already exists locally (e.g.
+      // data created before cloud sync was ever enabled) up to Firebase.
+      pushLocalDiff(store.get(key));
+
+      // Push local changes up to Firebase as they happen, diffed per item.
+      store.on(`${key}:changed`, data => pushLocalDiff(data));
     });
 
     enabled = true;

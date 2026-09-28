@@ -33,6 +33,7 @@ export function createMatch({ fixtureId, sportId, initialState }) {
     fixtureId,
     sportId,
     startedAt: Date.now(),
+    updatedAt: Date.now(),
     endedAt: null,
     state: initialState,
     result: { winnerSide: null, summary: "" },
