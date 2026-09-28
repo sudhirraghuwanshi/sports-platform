@@ -5,6 +5,13 @@ import * as store from "./core/store.js";
 import * as sync from "./core/sync.js";
 import { firebaseConfig } from "./config/firebase.config.js";
 
+// Bump this on every deploy alongside service-worker.js's CACHE_NAME. It is
+// shown as a small badge in every page header so you can immediately tell
+// whether your browser is actually running the latest deployed code, or is
+// stuck on a stale cached copy — the single biggest source of "I fixed it
+// but it's still not working" confusion in this project's history.
+const APP_BUILD = "v23";
+
 // Surface ANY uncaught error/rejection visibly on the page instead of it
 // silently aborting script execution. This has previously masked real
 // bugs: an uncaught error anywhere during boot (even in an unrelated
@@ -53,6 +60,26 @@ function ensureSyncBadge() {
   else document.body.prepend(badge);
   return badge;
 }
+
+// Visible build-version tag so it's obvious at a glance whether this
+// browser is running stale cached JS. If this doesn't match the latest
+// commit's APP_BUILD value, the fix is: unregister the service worker /
+// clear site data for this origin, not another code change.
+function showBuildBadge() {
+  let el = document.getElementById("global-build-badge");
+  if (!el) {
+    el = document.createElement("span");
+    el.id = "global-build-badge";
+    el.style.cssText =
+      "display:inline-block;margin-left:6px;padding:2px 6px;border-radius:10px;font-size:11px;font-weight:600;vertical-align:middle;background:#e2e3e5;color:#383d41;";
+    const header = document.querySelector(".app-header .brand");
+    if (header) header.appendChild(el);
+    else document.body.prepend(el);
+  }
+  el.textContent = `build ${APP_BUILD}`;
+  el.title = "If this doesn't match the latest deploy, unregister the service worker / clear site data for this page.";
+}
+showBuildBadge();
 
 function setSyncBadge(text, kind) {
   const badge = ensureSyncBadge();
@@ -104,7 +131,15 @@ if (activeFirebaseConfig?.apiKey) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(err => {
+    navigator.serviceWorker.register("./service-worker.js").then(reg => {
+      // Explicitly ask the browser to check for a new service worker right
+      // now instead of waiting for its own internal schedule. Without
+      // this, a browser can keep running an old cached service worker (and
+      // therefore old cached JS) for longer than expected after a deploy,
+      // which has been the source of multiple "I fixed it but it's still
+      // not working" reports in this project.
+      reg.update().catch(() => {});
+    }).catch(err => {
       console.warn("Service worker registration failed", err);
     });
   });
@@ -120,6 +155,36 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
 }
+
+// Manual escape hatch, always available via the build badge's right-click
+// alternative: a small "Force update" link so you never have to touch
+// DevTools to fully wipe a stuck old service worker + all its caches.
+function addForceUpdateLink() {
+  const header = document.querySelector(".app-header .brand");
+  if (!header) return;
+  const link = document.createElement("button");
+  link.type = "button";
+  link.textContent = "⟳ Force update";
+  link.title = "Unregister the service worker, clear all caches, and reload — use this if the app seems stuck on old code.";
+  link.style.cssText =
+    "margin-left:6px;font-size:11px;padding:2px 6px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;";
+  link.addEventListener("click", async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } finally {
+      window.location.reload();
+    }
+  });
+  header.appendChild(link);
+}
+addForceUpdateLink();
 
 const page = document.body.dataset.page;
 
