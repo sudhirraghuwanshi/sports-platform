@@ -1,0 +1,11 @@
+/* Optional per-sport accent colors, applied via .sport-<id> class */
+.sport-badminton { background: #2ea043; color: #fff; }
+.sport-tennis { background: #d29922; color: #fff; }
+.sport-table_tennis { background: #1f6feb; color: #fff; }
+.sport-squash { background: #8957e5; color: #fff; }
+.sport-snooker { background: #163b1f; color: #fff; }
+.sport-billiards { background: #3d444d; color: #fff; }
+.sport-carrom { background: #9e6a03; color: #fff; }
+.sport-chess { background: #6e7681; color: #fff; }
+.sport-swimming { background: #0969da; color: #fff; }
+.sport-cricket { background: #cf222e; color: #fff; }

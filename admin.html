@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Sports Platform</title>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#1f6feb" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+</head>
+<body data-page="admin">
+  <header class="app-header">
+    <h1>🏆 Admin Panel</h1>
+    <nav>
+      <a href="./fixtures.html">Fixtures</a>
+      <a href="./live.html">Live Scores</a>
+      <a href="./admin.html" class="active">Admin</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section id="admin-login" class="panel">
+      <h2>Admin Login</h2>
+      <p class="hint">Default password: <code>admin123</code> (change in README instructions)</p>
+      <form id="admin-login-form">
+        <input id="admin-pass" type="password" placeholder="Password" required />
+        <button class="btn btn-primary" type="submit">Login</button>
+      </form>
+      <p id="admin-login-error" class="error"></p>
+    </section>
+
+    <section id="admin-panel" class="panel hidden">
+      <div class="admin-grid">
+        <div>
+          <h3>Add Participant</h3>
+          <form id="participant-form">
+            <input id="participant-name" type="text" placeholder="Full name" required />
+            <select id="participant-gender">
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+              <option value="X">Other/Mixed</option>
+            </select>
+            <button class="btn" type="submit">Add</button>
+          </form>
+          <ul id="participants-list"></ul>
+        </div>
+
+        <div>
+          <h3>Create Fixture</h3>
+          <form id="fixture-form">
+            <select id="fixture-sport"></select>
+            <select id="fixture-category"></select>
+            <input id="fixture-round" type="text" placeholder="Round (e.g. Quarterfinal)" />
+            <input id="fixture-datetime" type="datetime-local" required />
+            <input id="fixture-venue" type="text" placeholder="Venue" />
+            <input id="fixture-side-a" type="text" placeholder="Side A participant IDs (comma-separated)" required />
+            <input id="fixture-side-b" type="text" placeholder="Side B participant IDs (comma-separated)" required />
+            <button class="btn btn-primary" type="submit">Create Fixture</button>
+          </form>
+          <ul id="fixtures-admin-list"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

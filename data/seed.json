@@ -1,0 +1,25 @@
+{
+  "sports": [],
+  "participants": [
+    { "id": "p_demo1", "name": "Alice Sharma", "gender": "F", "team": null, "contact": "", "categoryIds": ["mens_singles"] },
+    { "id": "p_demo2", "name": "Bob Rao", "gender": "M", "team": null, "contact": "", "categoryIds": ["mens_singles"] }
+  ],
+  "fixtures": [
+    {
+      "id": "f_demo1",
+      "sportId": "badminton",
+      "categoryId": "mens_singles",
+      "round": "Final",
+      "participants": [
+        { "side": "A", "participantIds": ["p_demo1"] },
+        { "side": "B", "participantIds": ["p_demo2"] }
+      ],
+      "scheduledAt": "2026-10-01T10:00:00Z",
+      "venue": "Court 1",
+      "status": "scheduled",
+      "umpireCode": "1234",
+      "matchId": null
+    }
+  ],
+  "matches": []
+}

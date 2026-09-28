@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Scores — Sports Platform</title>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#1f6feb" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/sport-themes.css" />
+</head>
+<body data-page="live">
+  <header class="app-header">
+    <h1>🏆 Sports Platform</h1>
+    <nav>
+      <a href="./fixtures.html">Fixtures</a>
+      <a href="./live.html" class="active">Live Scores</a>
+      <a href="./admin.html">Admin</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h2>Live Matches</h2>
+    <div id="live-list" class="card-grid"></div>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

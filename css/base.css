@@ -1,0 +1,70 @@
+:root {
+  --color-bg: #0d1117;
+  --color-surface: #161b22;
+  --color-border: #30363d;
+  --color-text: #c9d1d9;
+  --color-text-dim: #8b949e;
+  --color-primary: #1f6feb;
+  --color-primary-hover: #388bfd;
+  --color-live: #f85149;
+  --color-success: #2ea043;
+  --radius: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+h1, h2, h3 {
+  margin: 0 0 var(--space-2);
+}
+
+input, select, button {
+  font: inherit;
+  color: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.error {
+  color: var(--color-live);
+  min-height: 1.2em;
+}
+
+.hint {
+  color: var(--color-text-dim);
+  font-size: 0.9rem;
+}
+
+code {
+  background: var(--color-surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+}

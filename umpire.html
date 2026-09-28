@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Umpire Console — Sports Platform</title>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#1f6feb" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+</head>
+<body data-page="umpire">
+  <header class="app-header">
+    <h1>🏆 Umpire Console</h1>
+  </header>
+
+  <main class="container">
+    <section id="umpire-login" class="panel">
+      <h2>Enter Umpire Code</h2>
+      <form id="umpire-login-form">
+        <input id="umpire-code" type="text" inputmode="numeric" placeholder="4-digit code" required />
+        <button class="btn btn-primary" type="submit">Access Match</button>
+      </form>
+      <p id="umpire-login-error" class="error"></p>
+    </section>
+
+    <section id="umpire-console" class="panel hidden">
+      <h2 id="umpire-sport-name"></h2>
+      <div id="umpire-score-display" class="score-display"></div>
+      <div class="umpire-controls">
+        <button id="btn-point-a" class="btn btn-large">Point A</button>
+        <button id="btn-point-b" class="btn btn-large">Point B</button>
+      </div>
+      <button id="btn-undo" class="btn btn-secondary">Undo</button>
+    </section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
