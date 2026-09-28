@@ -108,6 +108,28 @@
         <h3>Player Registrations</h3>
         <div id="registrations-admin-list" class="card-grid"></div>
       </div>
+
+      <div class="panel" style="margin-top: var(--space-4);">
+        <h3>Cloud Sync (cross-device live updates)</h3>
+        <p class="hint">
+          By default data only lives in this browser's storage. To see live scores update
+          on other phones/laptops in real time, connect a free
+          <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase</a>
+          Realtime Database and paste its config below.
+        </p>
+        <form id="cloud-sync-form" style="max-width: 480px;">
+          <input id="cs-apiKey" type="text" placeholder="apiKey" />
+          <input id="cs-authDomain" type="text" placeholder="authDomain" />
+          <input id="cs-databaseURL" type="text" placeholder="databaseURL" />
+          <input id="cs-projectId" type="text" placeholder="projectId" />
+          <input id="cs-storageBucket" type="text" placeholder="storageBucket (optional)" />
+          <input id="cs-messagingSenderId" type="text" placeholder="messagingSenderId (optional)" />
+          <input id="cs-appId" type="text" placeholder="appId" />
+          <button class="btn btn-primary" type="submit">Save &amp; Enable Cloud Sync</button>
+          <button class="btn btn-secondary" type="button" id="cloud-sync-disable">Disable Cloud Sync</button>
+        </form>
+        <p id="cloud-sync-status" class="hint"></p>
+      </div>
     </section>
   </main>
 

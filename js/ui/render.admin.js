@@ -1,6 +1,7 @@
 // js/ui/render.admin.js
 import * as store from "../core/store.js";
 import * as auth from "../core/auth.js";
+import * as sync from "../core/sync.js";
 import { SPORTS, getSport } from "../config/sports.config.js";
 import { createParticipant, createFixture, validateFixture } from "../core/models.js";
 import { generateBracket } from "../core/bracket.js";
@@ -36,6 +37,7 @@ export function initAdminPage() {
   bindBulkParticipantForm();
   bindFixtureForm();
   bindGenerateFixturesForm();
+  bindCloudSyncForm();
 }
 
 function renderAll() {
@@ -312,4 +314,65 @@ function bindGenerateFixturesForm() {
     successEl.textContent = `Generated ${created} fixture(s) across ${rounds.length} round(s).`;
     successEl.classList.remove("hidden");
   });
+}
+
+function bindCloudSyncForm() {
+  const form = qs("#cloud-sync-form");
+  if (!form) return;
+
+  const settings = store.get("settings");
+  const cfg = settings.firebaseConfig || {};
+  ["apiKey", "authDomain", "databaseURL", "projectId", "storageBucket", "messagingSenderId", "appId"].forEach(field => {
+    const el = qs(`#cs-${field}`);
+    if (el && cfg[field]) el.value = cfg[field];
+  });
+  updateCloudSyncStatus();
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const firebaseConfig = {
+      apiKey: qs("#cs-apiKey").value.trim(),
+      authDomain: qs("#cs-authDomain").value.trim(),
+      databaseURL: qs("#cs-databaseURL").value.trim(),
+      projectId: qs("#cs-projectId").value.trim(),
+      storageBucket: qs("#cs-storageBucket").value.trim(),
+      messagingSenderId: qs("#cs-messagingSenderId").value.trim(),
+      appId: qs("#cs-appId").value.trim()
+    };
+
+    if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
+      qs("#cloud-sync-status").textContent = "Please provide at least apiKey and databaseURL.";
+      return;
+    }
+
+    const currentSettings = store.get("settings");
+    store.set("settings", { ...currentSettings, cloudMode: true, firebaseConfig });
+
+    qs("#cloud-sync-status").textContent = "Connecting...";
+    const ok = await sync.init(firebaseConfig);
+    updateCloudSyncStatus(ok);
+  });
+
+  qs("#cloud-sync-disable")?.addEventListener("click", () => {
+    const currentSettings = store.get("settings");
+    store.set("settings", { ...currentSettings, cloudMode: false });
+    qs("#cloud-sync-status").textContent = "Cloud sync disabled. Reload the page to fully stop syncing. Data stays local from now on.";
+  });
+}
+
+function updateCloudSyncStatus(justConnected) {
+  const statusEl = qs("#cloud-sync-status");
+  if (!statusEl) return;
+  const settings = store.get("settings");
+  if (justConnected === false) {
+    statusEl.textContent = "Could not connect. Double-check your Firebase config values.";
+    return;
+  }
+  if (sync.isEnabled() || (justConnected && settings.cloudMode)) {
+    statusEl.textContent = "✅ Cloud sync is active — changes will appear on all devices in real time.";
+  } else if (settings.cloudMode) {
+    statusEl.textContent = "Cloud sync is saved but not yet connected on this page load. Reload to activate.";
+  } else {
+    statusEl.textContent = "Cloud sync is off. Data is only stored on this device.";
+  }
 }

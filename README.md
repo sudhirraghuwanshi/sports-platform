@@ -54,14 +54,26 @@ The first time you open admin.html, a default password `admin123` is set automat
 5. Wait for the green checkmark under the **Actions** tab, then visit:
    `https://<your-username>.github.io/<repo-name>/`
 
-## Enabling Cloud Sync (optional)
-By default all data is stored in the browser's localStorage (per-device only).
-To sync scores across devices in real time:
-1. Create a Firebase project and enable Realtime Database.
-2. In `js/core/sync.js`, call `init(firebaseConfig)` with your project's config
-   (do this from an admin settings screen or directly in `app.js`).
-3. Firebase client config keys are safe to expose publicly; secure your data
-   using Firebase Realtime Database security rules instead.
+## Enabling Cloud Sync (optional, for cross-device live updates)
+By default all data is stored in the browser's localStorage — **each device/browser has
+its own separate copy**, which is why scores entered on one phone/laptop won't show up
+on another. To make live scores, fixtures, and registrations sync across every device
+in real time:
+
+1. Go to the [Firebase Console](https://console.firebase.google.com/), create a free project.
+2. In the project, open **Build → Realtime Database** and click **Create Database**
+   (choose test mode to start, then tighten security rules before going live).
+3. Open **Project settings → General**, scroll to "Your apps", click the web icon (`</>`)
+   to register a web app, and copy the resulting config values
+   (apiKey, authDomain, databaseURL, projectId, appId, etc.).
+4. Open [admin.html](admin.html) on your site, log in, scroll to **Cloud Sync**, paste
+   those values in, and click **Save & Enable Cloud Sync**.
+5. Reload the page. All connected devices/browsers that also have cloud sync enabled
+   (with the same Firebase project) will now see fixtures, scores, and registrations
+   update live, no redeploy needed.
+
+Firebase client config keys are safe to expose publicly; secure your data
+using Firebase Realtime Database security rules instead of hiding the config.
 
 ## License
 MIT

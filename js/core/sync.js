@@ -12,6 +12,8 @@ let firebaseApp = null;
 let db = null;
 let enabled = false;
 
+const SYNCED_KEYS = ["sports", "participants", "fixtures", "matches", "registrations"];
+
 export function isEnabled() {
   return enabled;
 }
@@ -31,18 +33,18 @@ export async function init(firebaseConfig) {
     firebaseApp = initializeApp(firebaseConfig);
     db = getDatabase(firebaseApp);
 
-    ["sports", "participants", "fixtures", "matches"].forEach(key => {
+    SYNCED_KEYS.forEach(key => {
       const r = ref(db, key);
       onValue(r, snapshot => {
         const val = snapshot.val() || [];
         store.set(key, val); // reuse local store as cache + emit UI updates
       });
-    });
 
-    // Push local changes up to Firebase
-    store.on("fixtures:changed", data => dbSet(ref(db, "fixtures"), data));
-    store.on("matches:changed", data => dbSet(ref(db, "matches"), data));
-    store.on("participants:changed", data => dbSet(ref(db, "participants"), data));
+      // Push local changes up to Firebase (skip the change that just came
+      // from Firebase itself would be ideal, but Firebase's onValue only
+      // fires when data actually differs, so this is safe against loops).
+      store.on(`${key}:changed`, data => dbSet(r, data));
+    });
 
     enabled = true;
     return true;

@@ -1,7 +1,7 @@
 // service-worker.js
 // Network-first for HTML/navigation (always fresh), stale-while-revalidate for other assets.
 // Bump CACHE_NAME on every deploy so old caches are dropped automatically.
-const CACHE_NAME = "sports-platform-v3";
+const CACHE_NAME = "sports-platform-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -56,6 +56,10 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+
+  // Never intercept cross-origin requests (Firebase, CDN imports, etc.) —
+  // let the browser handle those directly so realtime sync isn't disrupted.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
 
   // Navigation (HTML page loads) — always try network first so users get the
   // latest deployed markup/JS; fall back to cache only if offline.

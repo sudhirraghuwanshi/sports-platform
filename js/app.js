@@ -2,8 +2,16 @@
 // Entry point: initializes store, service worker, and the correct page module
 // based on which HTML page is loaded (each page includes this same script).
 import * as store from "./core/store.js";
+import * as sync from "./core/sync.js";
 
 store.init();
+
+const settings = store.get("settings");
+if (settings?.cloudMode && settings?.firebaseConfig) {
+  sync.init(settings.firebaseConfig).then(ok => {
+    if (ok) console.info("Cloud sync enabled — updates will appear on all devices.");
+  });
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
