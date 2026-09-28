@@ -17,8 +17,19 @@ const activeFirebaseConfig = settings?.cloudMode && settings?.firebaseConfig
   : firebaseConfig;
 
 if (activeFirebaseConfig?.apiKey) {
+  sync.onError(err => {
+    console.error(`[cloud sync error] ${err.context}: ${err.message}`);
+  });
   sync.init(activeFirebaseConfig).then(ok => {
-    if (ok) console.info("Cloud sync enabled — updates will appear on all devices.");
+    if (ok) {
+      console.info("Cloud sync enabled — updates will appear on all devices.");
+    } else {
+      const err = sync.getLastError();
+      console.warn(
+        "Cloud sync failed to start" + (err ? ` [${err.context}]: ${err.message}` : ""),
+        "— open the Admin panel's Cloud Sync section for details, or check this console for the exact Firebase error."
+      );
+    }
   });
 }
 

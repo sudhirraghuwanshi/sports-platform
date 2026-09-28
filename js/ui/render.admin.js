@@ -347,6 +347,14 @@ function bindCloudSyncForm() {
   const form = qs("#cloud-sync-form");
   if (!form) return;
 
+  sync.onError(err => {
+    const statusEl = qs("#cloud-sync-status");
+    if (statusEl) {
+      statusEl.textContent = `\u26a0\ufe0f Sync error [${err.context}]: ${err.message}`;
+      statusEl.style.color = "var(--color-live)";
+    }
+  });
+
   const settings = store.get("settings");
   const cfg = settings.firebaseConfig || {};
   ["apiKey", "authDomain", "databaseURL", "projectId", "storageBucket", "messagingSenderId", "appId"].forEach(field => {
@@ -390,9 +398,14 @@ function bindCloudSyncForm() {
 function updateCloudSyncStatus(justConnected) {
   const statusEl = qs("#cloud-sync-status");
   if (!statusEl) return;
+  statusEl.style.color = "";
   const settings = store.get("settings");
+  const lastError = sync.getLastError();
   if (justConnected === false) {
-    statusEl.textContent = "Could not connect. Double-check your Firebase config values.";
+    statusEl.textContent = lastError
+      ? `\u26a0\ufe0f Could not connect [${lastError.context}]: ${lastError.message}`
+      : "Could not connect. Double-check your Firebase config values.";
+    statusEl.style.color = "var(--color-live)";
     return;
   }
   if (sync.isEnabled() || (justConnected && settings.cloudMode)) {

@@ -17,11 +17,29 @@ import * as store from "./store.js";
 let firebaseApp = null;
 let db = null;
 let enabled = false;
+let lastError = null;
+const errorListeners = [];
 
 const SYNCED_KEYS = ["sports", "participants", "fixtures", "matches", "registrations"];
 
 export function isEnabled() {
   return enabled;
+}
+
+export function getLastError() {
+  return lastError;
+}
+
+export function onError(cb) {
+  errorListeners.push(cb);
+}
+
+function reportError(context, err) {
+  lastError = { context, message: err?.message || String(err), at: Date.now() };
+  console.error(`sync.js [${context}]`, err);
+  errorListeners.forEach(cb => {
+    try { cb(lastError); } catch (e) { console.error(e); }
+  });
 }
 
 // Merge local + remote item lists by id: for each id present on either
@@ -74,33 +92,37 @@ export async function init(firebaseConfig) {
           const itemTs = item.updatedAt || 0;
           if (known === undefined || known !== itemTs) {
             lastSyncedById.set(item.id, itemTs);
-            dbSet(ref(db, `${key}/${item.id}`), item);
+            dbSet(ref(db, `${key}/${item.id}`), item).catch(err => reportError(`write ${key}/${item.id}`, err));
           }
         });
         // Propagate local deletions.
         Array.from(lastSyncedById.keys()).forEach(id => {
           if (!currentIds.has(id)) {
             lastSyncedById.delete(id);
-            dbSet(ref(db, `${key}/${id}`), null);
+            dbSet(ref(db, `${key}/${id}`), null).catch(err => reportError(`delete ${key}/${id}`, err));
           }
         });
       }
 
-      onValue(collectionRef, snapshot => {
-        const val = snapshot.val() || {};
-        const remoteArr = Object.values(val);
-        const localArr = store.get(key);
-        const merged = mergeById(localArr, remoteArr);
+      onValue(
+        collectionRef,
+        snapshot => {
+          const val = snapshot.val() || {};
+          const remoteArr = Object.values(val);
+          const localArr = store.get(key);
+          const merged = mergeById(localArr, remoteArr);
 
-        // Record what we now believe is synced for every item in the
-        // merged result so the local "changed" handler below won't
-        // needlessly re-push items that just arrived from Firebase.
-        merged.forEach(item => lastSyncedById.set(item.id, item.updatedAt || 0));
+          // Record what we now believe is synced for every item in the
+          // merged result so the local "changed" handler below won't
+          // needlessly re-push items that just arrived from Firebase.
+          merged.forEach(item => lastSyncedById.set(item.id, item.updatedAt || 0));
 
-        if (JSON.stringify(merged) !== JSON.stringify(localArr)) {
-          store.set(key, merged); // updates local cache + notifies UI
-        }
-      });
+          if (JSON.stringify(merged) !== JSON.stringify(localArr)) {
+            store.set(key, merged); // updates local cache + notifies UI
+          }
+        },
+        err => reportError(`read ${key}`, err)
+      );
 
       // One-time bootstrap: push whatever already exists locally (e.g.
       // data created before cloud sync was ever enabled) up to Firebase.
@@ -113,6 +135,7 @@ export async function init(firebaseConfig) {
     enabled = true;
     return true;
   } catch (e) {
+    reportError("init", e);
     console.error("Failed to init Firebase sync", e);
     return false;
   }
