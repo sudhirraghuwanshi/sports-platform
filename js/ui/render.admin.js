@@ -221,7 +221,7 @@ function bindClearRegistrationsButton() {
     if (!confirm(`Delete all ${current.length} registration(s)? This also clears them from cloud sync for every device.`)) {
       return;
     }
-    store.set("registrations", []);
+    store.clearAll("registrations");
     renderRegistrationsList();
   });
 }
@@ -243,8 +243,8 @@ function bindClearFixturesButton() {
     ) {
       return;
     }
-    store.set("fixtures", []);
-    store.set("matches", []);
+    store.clearAll("fixtures");
+    store.clearAll("matches");
     renderFixturesList();
   });
 }

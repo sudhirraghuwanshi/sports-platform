@@ -9,6 +9,43 @@ function keyName(key) {
   return `sp_${key}`;
 }
 
+// Tombstones record "this id was explicitly deleted at this time" and are
+// persisted to localStorage (so they survive a hard-refresh). Cloud sync
+// uses these to know an item must stay deleted even if a slow/late remote
+// read still shows the old copy, instead of silently resurrecting it.
+function tombstoneKeyName(key) {
+  return `sp_tombstones_${key}`;
+}
+
+export function getTombstones(key) {
+  try {
+    const raw = localStorage.getItem(tombstoneKeyName(key));
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function setTombstones(key, obj) {
+  localStorage.setItem(tombstoneKeyName(key), JSON.stringify(obj));
+}
+
+function addTombstones(key, ids) {
+  if (!ids || ids.length === 0) return;
+  const t = getTombstones(key);
+  const now = Date.now();
+  ids.forEach(id => { t[id] = now; });
+  setTombstones(key, t);
+}
+
+export function clearTombstone(key, id) {
+  const t = getTombstones(key);
+  if (id in t) {
+    delete t[id];
+    setTombstones(key, t);
+  }
+}
+
 function emit(key) {
   const evtName = `${key}:changed`;
   (listeners[evtName] || []).forEach(cb => {
@@ -79,7 +116,19 @@ export function update(key, id, patch) {
 
 export function remove(key, id) {
   const list = get(key).filter(x => x.id !== id);
+  addTombstones(key, [id]);
   set(key, list);
+}
+
+// Delete every item in a collection at once (e.g. admin "Clear All"
+// buttons), tombstoning every removed id so cloud sync will keep
+// enforcing the deletion (retrying until the server confirms it) even
+// across a hard-refresh, instead of the deletion silently being lost if
+// it happens to race the first cloud sync read.
+export function clearAll(key) {
+  const list = get(key);
+  addTombstones(key, list.map(x => x.id));
+  set(key, key === "settings" ? {} : []);
 }
 
 export function exportAll() {

@@ -58,12 +58,22 @@ function toArray(val) {
   return [];
 }
 
-function mergeById(localArr, remoteArr) {
+function mergeById(localArr, remoteArr, tombstones) {
   localArr = toArray(localArr);
   remoteArr = toArray(remoteArr);
+  tombstones = tombstones || {};
   const now = Date.now();
   const byId = new Map();
-  remoteArr.forEach(item => byId.set(item.id, item));
+  remoteArr.forEach(item => {
+    // A tombstoned id means this item was explicitly deleted locally (or on
+    // another device) — never let a slow/late/offline remote copy bring it
+    // back, no matter how the timing of the sync connection lines up. This
+    // is what fixes deleted fixtures/matches reappearing after a hard
+    // refresh: the tombstone persists in localStorage independent of
+    // whether the delete had actually reached the server yet.
+    if (tombstones[item.id]) return;
+    byId.set(item.id, item);
+  });
   localArr.forEach(item => {
     const existing = byId.get(item.id);
     if (!existing) {
@@ -132,7 +142,23 @@ export async function init(firebaseConfig) {
           const val = snapshot.val() || {};
           const remoteArr = Object.values(val);
           const localArr = store.get(key);
-          const merged = mergeById(localArr, remoteArr);
+          const tombstones = store.getTombstones(key);
+          const merged = mergeById(localArr, remoteArr, tombstones);
+
+          // Enforce every pending tombstone against the server on every
+          // snapshot, regardless of connection timing. This is what makes
+          // a "Clear All" click stick even if it happened before the very
+          // first snapshot arrived (previously that window could silently
+          // drop the deletion, letting the item come back after a
+          // hard-refresh). Once the server confirms the id is really gone,
+          // the tombstone is removed so it doesn't linger forever.
+          Object.keys(tombstones).forEach(id => {
+            if (val && Object.prototype.hasOwnProperty.call(val, id)) {
+              dbSet(ref(db, `${key}/${id}`), null).catch(err => reportError(`delete ${key}/${id}`, err));
+            } else {
+              store.clearTombstone(key, id);
+            }
+          });
 
           // Record what we now believe is synced for every item in the
           // merged result so the pushLocalDiff call below won't needlessly
