@@ -65,16 +65,15 @@ function mergeById(localArr, remoteArr, tombstones) {
   const now = Date.now();
   const byId = new Map();
   remoteArr.forEach(item => {
-    // A tombstoned id means this item was explicitly deleted locally (or on
-    // another device) — never let a slow/late/offline remote copy bring it
-    // back, no matter how the timing of the sync connection lines up. This
-    // is what fixes deleted fixtures/matches reappearing after a hard
-    // refresh: the tombstone persists in localStorage independent of
-    // whether the delete had actually reached the server yet.
+    // A tombstoned id means this item was explicitly deleted (by this
+    // device or ANY other device/tab) — never let a slow/late/offline
+    // remote copy, or a stale device that hasn't learned about the
+    // deletion yet, bring it back.
     if (tombstones[item.id]) return;
     byId.set(item.id, item);
   });
   localArr.forEach(item => {
+    if (tombstones[item.id]) return; // also strip from local-only side
     const existing = byId.get(item.id);
     if (!existing) {
       // Local-only item: keep only if it's brand new (still propagating
@@ -108,17 +107,28 @@ export async function init(firebaseConfig) {
 
     SYNCED_KEYS.forEach(key => {
       const collectionRef = ref(db, key);
+      // Deletions are tracked in their own Firebase path (not just in this
+      // device's localStorage) so that EVERY device/tab — including ones
+      // that never clicked delete and still have the old item cached
+      // locally — learns about the deletion and stops re-pushing it back
+      // up. This is what fixes an item reappearing even after a hard
+      // refresh: previously the tombstone only lived in the deleting
+      // browser's localStorage, so any other open tab/device was
+      // completely unaware and would resurrect the item on its next sync.
+      const tombstoneRef = ref(db, `${key}__deleted`);
 
       // Tracks the updatedAt we last knew was synced for each item id, so
       // we only push items whose updatedAt has actually advanced and only
       // remove children that were genuinely deleted locally.
       const lastSyncedById = new Map();
       let gotFirstSnapshot = false;
+      let remoteTombstones = {};
 
       function pushLocalDiff(currentArr) {
         currentArr = toArray(currentArr);
         const currentIds = new Set();
         currentArr.forEach(item => {
+          if (remoteTombstones[item.id] || store.getTombstones(key)[item.id]) return; // never re-push a deleted id
           currentIds.add(item.id);
           const known = lastSyncedById.get(item.id);
           const itemTs = item.updatedAt || 0;
@@ -136,29 +146,60 @@ export async function init(firebaseConfig) {
         });
       }
 
+      // Push any tombstones this device knows about (from store.remove /
+      // store.clearAll) up to the shared tombstone path, and make sure the
+      // actual data node is deleted too. Runs on every local change and
+      // every remote snapshot so it keeps retrying until confirmed.
+      function enforceLocalTombstones() {
+        const local = store.getTombstones(key);
+        Object.entries(local).forEach(([id, ts]) => {
+          if (!remoteTombstones[id]) {
+            dbSet(ref(db, `${key}__deleted/${id}`), ts).catch(err => reportError(`tombstone ${key}/${id}`, err));
+          }
+          dbSet(ref(db, `${key}/${id}`), null).catch(err => reportError(`delete ${key}/${id}`, err));
+        });
+      }
+
+      function applyRemoteTombstonesLocally() {
+        // If the server knows about a deletion this device doesn't have
+        // recorded yet (e.g. it was deleted from a different tab), strip
+        // that item out of this device's local cache too, so it can never
+        // be re-pushed from here either.
+        const localArr = toArray(store.get(key));
+        const hasAny = localArr.some(item => remoteTombstones[item.id]);
+        if (hasAny) {
+          store.set(key, localArr.filter(item => !remoteTombstones[item.id]));
+        }
+      }
+
+      onValue(
+        tombstoneRef,
+        snapshot => {
+          remoteTombstones = snapshot.val() || {};
+          applyRemoteTombstonesLocally();
+          enforceLocalTombstones();
+        },
+        err => reportError(`read ${key}__deleted`, err)
+      );
+
       onValue(
         collectionRef,
         snapshot => {
           const val = snapshot.val() || {};
           const remoteArr = Object.values(val);
           const localArr = store.get(key);
-          const tombstones = store.getTombstones(key);
-          const merged = mergeById(localArr, remoteArr, tombstones);
+          const localTombstones = store.getTombstones(key);
+          const combinedTombstones = { ...remoteTombstones, ...localTombstones };
+          const merged = mergeById(localArr, remoteArr, combinedTombstones);
 
-          // Enforce every pending tombstone against the server on every
-          // snapshot, regardless of connection timing. This is what makes
-          // a "Clear All" click stick even if it happened before the very
-          // first snapshot arrived (previously that window could silently
-          // drop the deletion, letting the item come back after a
-          // hard-refresh). Once the server confirms the id is really gone,
-          // the tombstone is removed so it doesn't linger forever.
-          Object.keys(tombstones).forEach(id => {
-            if (val && Object.prototype.hasOwnProperty.call(val, id)) {
-              dbSet(ref(db, `${key}/${id}`), null).catch(err => reportError(`delete ${key}/${id}`, err));
-            } else {
+          // Clear any local tombstone once the server confirms the item is
+          // truly gone, so it doesn't linger in localStorage forever.
+          Object.keys(localTombstones).forEach(id => {
+            if (!Object.prototype.hasOwnProperty.call(val, id)) {
               store.clearTombstone(key, id);
             }
           });
+          enforceLocalTombstones();
 
           // Record what we now believe is synced for every item in the
           // merged result so the pushLocalDiff call below won't needlessly
@@ -192,6 +233,7 @@ export async function init(firebaseConfig) {
       // before Firebase responds is ever silently lost. pushLocalDiff
       // itself no-ops until gotFirstSnapshot is true.
       store.on(`${key}:changed`, data => {
+        enforceLocalTombstones();
         if (!gotFirstSnapshot) return; // will be flushed by the onValue handler above once it fires
         pushLocalDiff(data);
       });
