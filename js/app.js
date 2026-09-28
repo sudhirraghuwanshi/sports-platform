@@ -10,7 +10,7 @@ import { firebaseConfig } from "./config/firebase.config.js";
 // whether your browser is actually running the latest deployed code, or is
 // stuck on a stale cached copy — the single biggest source of "I fixed it
 // but it's still not working" confusion in this project's history.
-const APP_BUILD = "v26";
+const APP_BUILD = "v27";
 console.log(`%c[Tristar Sports] app.js loaded — build ${APP_BUILD}`, "font-weight:bold;color:#ff6a00;");
 
 // Surface ANY uncaught error/rejection visibly on the page instead of it
