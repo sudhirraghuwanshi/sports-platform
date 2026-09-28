@@ -6,20 +6,34 @@ const ADMIN_KEY = "sp_admin_pass";
 const SESSION_KEY = "sp_session";
 
 export function setAdminPassword(pass) {
-  localStorage.setItem(ADMIN_KEY, pass);
+  try {
+    localStorage.setItem(ADMIN_KEY, pass);
+  } catch (e) {
+    console.error("setAdminPassword failed", e);
+  }
 }
 
 export function hasAdminPassword() {
-  return !!localStorage.getItem(ADMIN_KEY);
+  try {
+    return !!localStorage.getItem(ADMIN_KEY);
+  } catch (e) {
+    console.error("hasAdminPassword failed", e);
+    return false;
+  }
 }
 
 export function loginAdmin(pass) {
-  const stored = localStorage.getItem(ADMIN_KEY);
-  if (stored && stored === pass) {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role: "admin", at: Date.now() }));
-    return true;
+  try {
+    const stored = localStorage.getItem(ADMIN_KEY);
+    if (stored && stored === pass) {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role: "admin", at: Date.now() }));
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.error("loginAdmin failed", e);
+    return false;
   }
-  return false;
 }
 
 export function loginUmpire(fixtureId, code) {

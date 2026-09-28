@@ -5,7 +5,40 @@ import * as store from "./core/store.js";
 import * as sync from "./core/sync.js";
 import { firebaseConfig } from "./config/firebase.config.js";
 
-store.init();
+// Surface ANY uncaught error/rejection visibly on the page instead of it
+// silently aborting script execution. This has previously masked real
+// bugs: an uncaught error anywhere during boot (even in an unrelated
+// module) can stop the rest of app.js from running at all, which means
+// things like the admin login form's submit handler never get attached —
+// making the whole page look broken/unresponsive with zero visible clue
+// why, which is exactly what a page-freezing bug looks like to a user.
+window.addEventListener("error", e => {
+  console.error("[uncaught error]", e.error || e.message);
+  showFatalBanner(`Script error: ${e.message}`);
+});
+window.addEventListener("unhandledrejection", e => {
+  console.error("[unhandled promise rejection]", e.reason);
+  showFatalBanner(`Script error: ${e.reason?.message || e.reason}`);
+});
+
+function showFatalBanner(text) {
+  let el = document.getElementById("global-fatal-banner");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "global-fatal-banner";
+    el.style.cssText =
+      "background:#f8d7da;color:#721c24;padding:8px 16px;font-size:13px;font-weight:600;text-align:center;";
+    document.body.prepend(el);
+  }
+  el.textContent = `\u26a0\ufe0f ${text} \u2014 please screenshot this and hard-refresh.`;
+}
+
+try {
+  store.init();
+} catch (e) {
+  console.error("store.init failed", e);
+  showFatalBanner(`Startup error: ${e.message}`);
+}
 
 // --- Visible cloud-sync status badge (works on every page, no DevTools needed) ---
 function ensureSyncBadge() {
@@ -91,34 +124,39 @@ if ("serviceWorker" in navigator) {
 const page = document.body.dataset.page;
 
 async function boot() {
-  switch (page) {
-    case "fixtures": {
-      const { initFixturesPage } = await import("./ui/render.fixtures.js");
-      initFixturesPage();
-      break;
+  try {
+    switch (page) {
+      case "fixtures": {
+        const { initFixturesPage } = await import("./ui/render.fixtures.js");
+        initFixturesPage();
+        break;
+      }
+      case "live": {
+        const { initLivePage } = await import("./ui/render.live.js");
+        initLivePage();
+        break;
+      }
+      case "umpire": {
+        const { initUmpirePage } = await import("./ui/render.umpire.js");
+        initUmpirePage();
+        break;
+      }
+      case "register": {
+        const { initRegisterPage } = await import("./ui/render.register.js");
+        initRegisterPage();
+        break;
+      }
+      case "admin": {
+        const { initAdminPage } = await import("./ui/render.admin.js");
+        initAdminPage();
+        break;
+      }
+      default:
+        break;
     }
-    case "live": {
-      const { initLivePage } = await import("./ui/render.live.js");
-      initLivePage();
-      break;
-    }
-    case "umpire": {
-      const { initUmpirePage } = await import("./ui/render.umpire.js");
-      initUmpirePage();
-      break;
-    }
-    case "register": {
-      const { initRegisterPage } = await import("./ui/render.register.js");
-      initRegisterPage();
-      break;
-    }
-    case "admin": {
-      const { initAdminPage } = await import("./ui/render.admin.js");
-      initAdminPage();
-      break;
-    }
-    default:
-      break;
+  } catch (e) {
+    console.error(`Failed to initialize page "${page}"`, e);
+    showFatalBanner(`Failed to load this page's script (${e.message}). Try a hard-refresh.`);
   }
 }
 

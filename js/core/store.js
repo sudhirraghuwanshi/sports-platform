@@ -74,7 +74,18 @@ export function get(key) {
 }
 
 export function set(key, value) {
-  localStorage.setItem(keyName(key), JSON.stringify(value));
+  try {
+    localStorage.setItem(keyName(key), JSON.stringify(value));
+  } catch (e) {
+    // Most commonly QuotaExceededError from too much accumulated data
+    // (long test sessions, big tombstone lists, etc.). Never let this
+    // throw uncaught here — an uncaught error during any store.set() call
+    // (which can happen at any point, including during page boot) would
+    // otherwise silently abort the rest of app.js, meaning even unrelated
+    // things like the admin login form's submit handler never get
+    // attached, making the page look completely unresponsive.
+    console.error("store.set failed for", key, e);
+  }
   emit(key);
 }
 

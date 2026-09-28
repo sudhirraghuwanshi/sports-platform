@@ -27,6 +27,17 @@ export function initAdminPage() {
     });
   }
 
+  // Escape hatch: if the stored admin password on this device somehow
+  // diverged from the documented default (e.g. it was changed once during
+  // testing and forgotten, or corrupted), this lets you recover access
+  // without needing DevTools/localStorage surgery.
+  qs("#reset-admin-pass-btn")?.addEventListener("click", () => {
+    if (confirm("Reset the admin password on this device back to admin123?")) {
+      auth.setAdminPassword("admin123");
+      qs("#admin-login-error").textContent = "Password reset to admin123. Try logging in again.";
+    }
+  });
+
   if (auth.isAdmin()) {
     qs("#admin-login")?.classList.add("hidden");
     qs("#admin-panel")?.classList.remove("hidden");
