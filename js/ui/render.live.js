@@ -29,7 +29,17 @@ function render() {
   const matches = Array.from(byFixture.values());
 
   if (matches.length === 0) {
-    container.innerHTML = `<p class="empty-state">No live matches right now.</p>`;
+    // A fixture only becomes a "live match" once an umpire actually opens
+    // umpire.html and logs in with that fixture's umpire code — that's the
+    // moment a match record is created. Until then it correctly stays as
+    // a "scheduled" fixture on the Fixtures page instead of appearing
+    // here, which can otherwise look like a sync bug when fixtures were
+    // just generated but no one has started scoring any of them yet.
+    const scheduledCount = fixtures.filter(f => f.status === "scheduled").length;
+    container.innerHTML =
+      scheduledCount > 0
+        ? `<p class="empty-state">No live matches right now. ${scheduledCount} fixture(s) are scheduled but not started yet — open <a href="./fixtures.html">Fixtures</a> for the umpire code, then start scoring on <a href="./umpire.html">Umpire Console</a>.</p>`
+        : `<p class="empty-state">No live matches right now.</p>`;
     return;
   }
 

@@ -94,6 +94,21 @@ export function init() {
       set(k, k === "settings" ? {} : []);
     }
   });
+
+  // Keep every open tab of the SAME browser live in sync with each other.
+  // localStorage writes in one tab do not, by themselves, notify other
+  // tabs of that same browser (the built-in "storage" event only fires in
+  // *other* tabs, never the one that made the change) — without this, a
+  // match started on umpire.html in one tab would only ever be visible on
+  // a live.html tab open at the same time after that second tab is
+  // reloaded, since Firebase cloud sync round-tripping through the server
+  // could take longer than a user expects when testing on one device.
+  window.addEventListener("storage", e => {
+    if (!e.key || !e.key.startsWith("sp_")) return;
+    const match = KEYS.find(k => keyName(k) === e.key);
+    if (match) emit(match);
+  });
+}
 }
 
 // Convenience helpers
