@@ -31,6 +31,17 @@ const POINT_BASED_SPORTS = new Set(["badminton", "table_tennis", "squash", "tenn
 export function applyEvent(match, eventType, payload = {}) {
   const sport = getSport(match.sportId);
   if (!sport) throw new Error(`Unknown sport: ${match.sportId}`);
+
+  // Hard guard: once a match has a decided result, no further scoring
+  // events should be able to change it. Without this, clicking a point
+  // button after the final (deciding) set had already been won would
+  // keep incrementing that same finished set forever, since there is no
+  // "next set" to roll over into on the last game of the match.
+  if (eventType === "point" && match.endedAt) {
+    console.warn("Ignored point event: match already completed", match.id);
+    return match;
+  }
+
   match.updatedAt = Date.now();
 
   if (eventType === "point" && POINT_BASED_SPORTS.has(match.sportId)) {

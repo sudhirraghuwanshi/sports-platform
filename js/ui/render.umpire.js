@@ -70,6 +70,19 @@ function renderConsole() {
   qs("#umpire-sport-name").textContent = sport.name;
   qs("#umpire-score-display").textContent = scoreLine(match);
 
+  const isCompleted = !!match.endedAt;
+  qs("#btn-point-a")?.toggleAttribute("disabled", isCompleted);
+  qs("#btn-point-b")?.toggleAttribute("disabled", isCompleted);
+  const banner = qs("#umpire-completed-banner");
+  if (banner) {
+    if (isCompleted) {
+      banner.textContent = `Match completed${match.result?.summary ? " — " + match.result.summary : ""}. Use Undo to correct the last point if needed.`;
+      banner.classList.remove("hidden");
+    } else {
+      banner.classList.add("hidden");
+    }
+  }
+
   const participants = store.get("participants");
   const sideA = fixture.participants.find(s => s.side === "A");
   const sideB = fixture.participants.find(s => s.side === "B");
@@ -98,6 +111,7 @@ function handlePoint(side) {
   const matches = store.get("matches");
   const match = matches.find(m => m.id === fixture.matchId);
   if (!match) return;
+  if (match.endedAt) return; // match already decided; renderConsole disables the buttons for this too
 
   applyEvent(match, "point", { side });
   store.set("matches", matches.map(m => (m.id === match.id ? match : m)));

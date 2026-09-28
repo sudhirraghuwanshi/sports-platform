@@ -14,8 +14,19 @@ function render() {
   const container = qs("#live-list");
   if (!container) return;
 
-  const matches = store.get("matches").filter(m => !m.endedAt);
   const fixtures = store.get("fixtures");
+
+  // De-duplicate: keep only the single most-recently-updated live match per
+  // fixture, in case a stale/duplicate match record ever ends up in the
+  // store (e.g. from earlier test data or a sync race).
+  const byFixture = new Map();
+  store.get("matches").filter(m => !m.endedAt).forEach(m => {
+    const existing = byFixture.get(m.fixtureId);
+    if (!existing || (m.updatedAt || 0) > (existing.updatedAt || 0)) {
+      byFixture.set(m.fixtureId, m);
+    }
+  });
+  const matches = Array.from(byFixture.values());
 
   if (matches.length === 0) {
     container.innerHTML = `<p class="empty-state">No live matches right now.</p>`;
