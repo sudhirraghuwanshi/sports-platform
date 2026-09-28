@@ -7,6 +7,7 @@ import { createInitialState, applyEvent } from "../scoring/scoring.engine.js";
 import { qs } from "../core/utils.js";
 
 let activeFixtureId = null;
+let listenersBound = false;
 
 export function initUmpirePage() {
   const params = new URLSearchParams(location.hash.replace("#", ""));
@@ -69,14 +70,36 @@ function renderConsole() {
   qs("#umpire-sport-name").textContent = sport.name;
   qs("#umpire-score-display").textContent = scoreLine(match);
 
-  qs("#btn-point-a")?.addEventListener("click", () => handlePoint(match, "A"), { once: true });
-  qs("#btn-point-b")?.addEventListener("click", () => handlePoint(match, "B"), { once: true });
+  const participants = store.get("participants");
+  const sideA = fixture.participants.find(s => s.side === "A");
+  const sideB = fixture.participants.find(s => s.side === "B");
+  const nameA = sideNames(sideA?.participantIds, participants) || "A";
+  const nameB = sideNames(sideB?.participantIds, participants) || "B";
+  qs("#umpire-side-a-name").textContent = nameA;
+  qs("#umpire-side-b-name").textContent = nameB;
+
+  if (!listenersBound) {
+    qs("#btn-point-a")?.addEventListener("click", () => handlePoint("A"));
+    qs("#btn-point-b")?.addEventListener("click", () => handlePoint("B"));
+    listenersBound = true;
+  }
 }
 
-function handlePoint(match, side) {
+function sideNames(ids, participants) {
+  if (!ids || ids.length === 0) return "";
+  return ids.map(id => participants.find(p => p.id === id)?.name || "TBD").join(" / ");
+}
+
+function handlePoint(side) {
+  const fixtures = store.get("fixtures");
+  const fixture = fixtures.find(f => f.id === activeFixtureId);
+  if (!fixture) return;
+  const matches = store.get("matches");
+  const match = matches.find(m => m.id === fixture.matchId);
+  if (!match) return;
+
   applyEvent(match, "point", { side });
-  const matches = store.get("matches").map(m => (m.id === match.id ? match : m));
-  store.set("matches", matches);
+  store.set("matches", matches.map(m => (m.id === match.id ? match : m)));
 
   if (match.endedAt) {
     store.update("fixtures", match.fixtureId, { status: "completed" });

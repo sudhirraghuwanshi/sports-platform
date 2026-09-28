@@ -63,6 +63,22 @@ form input:focus, form select:focus {
   border-color: var(--color-primary);
 }
 
+form textarea {
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+}
+
+form textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
 .checkbox-group {
   display: flex;
   flex-direction: column;

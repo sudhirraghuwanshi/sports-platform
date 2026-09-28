@@ -49,11 +49,18 @@
             </select>
             <button class="btn" type="submit">Add</button>
           </form>
+
+          <h4>Bulk Add Players</h4>
+          <p class="hint">One player per line: <code>Name, Gender</code> (Gender optional: M/F/X)</p>
+          <form id="bulk-participant-form">
+            <textarea id="bulk-participant-text" rows="6" placeholder="John Smith, M&#10;Jane Doe, F&#10;Alex Lee"></textarea>
+            <button class="btn" type="submit">Add All</button>
+          </form>
           <ul id="participants-list"></ul>
         </div>
 
         <div>
-          <h3>Create Fixture</h3>
+          <h3>Create Single Fixture</h3>
           <form id="fixture-form">
             <select id="fixture-sport"></select>
             <select id="fixture-category"></select>
@@ -66,6 +73,33 @@
           </form>
           <ul id="fixtures-admin-list"></ul>
         </div>
+      </div>
+
+      <div class="panel" style="margin-top: var(--space-4);">
+        <h3>Auto-Generate Fixtures (all rounds, many players)</h3>
+        <p class="hint">Pick a sport &amp; category, select all participating players, choose a format, and every round of fixtures will be created automatically.</p>
+        <form id="generate-fixtures-form" style="max-width: 640px;">
+          <select id="gen-sport"></select>
+          <select id="gen-category"></select>
+          <select id="gen-format">
+            <option value="round_robin">Round Robin (everyone plays everyone)</option>
+            <option value="knockout">Knockout / Single Elimination</option>
+          </select>
+          <div class="checkbox-group">
+            <div class="checkbox-group-title">Select Players</div>
+            <div class="checkbox-row">
+              <button type="button" id="gen-select-all" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Select All</button>
+              <button type="button" id="gen-select-none" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Clear</button>
+            </div>
+            <div id="gen-participants-list" class="category-pills"></div>
+          </div>
+          <input id="gen-start-datetime" type="datetime-local" required placeholder="First match start" />
+          <input id="gen-interval-hours" type="number" min="1" value="2" placeholder="Hours between matches" />
+          <input id="gen-venue" type="text" placeholder="Venue" />
+          <button class="btn btn-primary" type="submit">Generate All Fixtures</button>
+        </form>
+        <p id="generate-fixtures-error" class="error"></p>
+        <p id="generate-fixtures-success" class="hint hidden"></p>
       </div>
 
       <div class="panel" style="margin-top: var(--space-4);">
