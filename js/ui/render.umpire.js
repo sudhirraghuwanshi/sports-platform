@@ -43,7 +43,12 @@ function startOrResumeMatch() {
   if (!fixture) return;
 
   let matches = store.get("matches");
-  let match = matches.find(m => m.id === fixture.matchId);
+  // Prefer the recorded matchId, but fall back to any match already
+  // created for this fixture (covers a stale/out-of-date matchId pointer,
+  // which previously caused duplicate matches and a "stuck" umpire console
+  // pointed at the wrong record). Never create a second match if one
+  // already exists for this fixture.
+  let match = matches.find(m => m.id === fixture.matchId) || matches.find(m => m.fixtureId === fixture.id);
 
   if (!match) {
     const initialState = createInitialState(fixture.sportId);
@@ -51,6 +56,9 @@ function startOrResumeMatch() {
     matches.push(match);
     store.set("matches", matches);
     store.update("fixtures", fixture.id, { status: "live", matchId: match.id });
+  } else if (fixture.matchId !== match.id) {
+    // Heal the pointer without creating a duplicate.
+    store.update("fixtures", fixture.id, { matchId: match.id, status: match.endedAt ? "completed" : "live" });
   }
   renderConsole();
 }
@@ -63,7 +71,7 @@ function renderConsole() {
   const fixture = fixtures.find(f => f.id === activeFixtureId);
   if (!fixture) return;
   const matches = store.get("matches");
-  const match = matches.find(m => m.id === fixture.matchId);
+  const match = matches.find(m => m.id === fixture.matchId) || matches.find(m => m.fixtureId === fixture.id);
   if (!match) return;
 
   const sport = getSport(fixture.sportId);
@@ -109,7 +117,7 @@ function handlePoint(side) {
   const fixture = fixtures.find(f => f.id === activeFixtureId);
   if (!fixture) return;
   const matches = store.get("matches");
-  const match = matches.find(m => m.id === fixture.matchId);
+  const match = matches.find(m => m.id === fixture.matchId) || matches.find(m => m.fixtureId === fixture.id);
   if (!match) return;
   if (match.endedAt) return; // match already decided; renderConsole disables the buttons for this too
 
@@ -126,7 +134,7 @@ function handleUndo() {
   const fixture = fixtures.find(f => f.id === activeFixtureId);
   if (!fixture) return;
   const matches = store.get("matches");
-  const match = matches.find(m => m.id === fixture.matchId);
+  const match = matches.find(m => m.id === fixture.matchId) || matches.find(m => m.fixtureId === fixture.id);
   if (!match) return;
 
   const wasCompleted = !!match.endedAt;

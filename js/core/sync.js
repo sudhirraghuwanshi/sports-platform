@@ -42,9 +42,16 @@ function reportError(context, err) {
   });
 }
 
-// Merge local + remote item lists by id: for each id present on either
-// side, keep whichever copy has the newer `updatedAt` (ties favor local so
-// we never lose in-flight edits due to a stale/incomplete remote read).
+// Merge local + remote item lists by id. Remote is treated as the source of
+// truth for *existence*: if an item was deleted on another device, remote
+// will no longer have it, and we must not resurrect it just because some
+// other stale browser tab/device still has an old copy cached locally —
+// that was the previous bug (deleted fixtures/matches kept reappearing).
+// The only exception is a short grace window for items that were *just*
+// created/edited locally and haven't reached the server yet (e.g. brief
+// network hiccup) — those are kept so we don't lose in-flight edits.
+const RESURRECTION_GRACE_MS = 20000;
+
 function toArray(val) {
   if (Array.isArray(val)) return val;
   if (val && typeof val === "object") return Object.values(val);
@@ -54,17 +61,22 @@ function toArray(val) {
 function mergeById(localArr, remoteArr) {
   localArr = toArray(localArr);
   remoteArr = toArray(remoteArr);
+  const now = Date.now();
   const byId = new Map();
-  localArr.forEach(item => byId.set(item.id, item));
-  remoteArr.forEach(item => {
+  remoteArr.forEach(item => byId.set(item.id, item));
+  localArr.forEach(item => {
     const existing = byId.get(item.id);
     if (!existing) {
-      byId.set(item.id, item);
+      // Local-only item: keep only if it's brand new (still propagating
+      // up). Otherwise it was almost certainly deleted elsewhere and this
+      // is just a stale local cache that should stop resurrecting it.
+      const ts = item.updatedAt || 0;
+      if (now - ts < RESURRECTION_GRACE_MS) byId.set(item.id, item);
       return;
     }
     const existingTs = existing.updatedAt || 0;
     const incomingTs = item.updatedAt || 0;
-    if (incomingTs > existingTs) byId.set(item.id, item);
+    if (incomingTs >= existingTs) byId.set(item.id, item);
   });
   return Array.from(byId.values());
 }
@@ -91,6 +103,7 @@ export async function init(firebaseConfig) {
       // we only push items whose updatedAt has actually advanced and only
       // remove children that were genuinely deleted locally.
       const lastSyncedById = new Map();
+      let gotFirstSnapshot = false;
 
       function pushLocalDiff(currentArr) {
         currentArr = toArray(currentArr);
@@ -129,16 +142,21 @@ export async function init(firebaseConfig) {
           if (JSON.stringify(merged) !== JSON.stringify(localArr)) {
             store.set(key, merged); // updates local cache + notifies UI
           }
+
+          // Only after we've reconciled with the real remote state at
+          // least once do we start pushing local changes up. Pushing
+          // *before* this point (using only whatever was cached locally
+          // from a previous session) is exactly what let deleted
+          // fixtures/matches keep reappearing: a stale tab would blindly
+          // re-upload old data it hadn't yet learned was deleted elsewhere.
+          if (!gotFirstSnapshot) {
+            gotFirstSnapshot = true;
+            pushLocalDiff(store.get(key));
+            store.on(`${key}:changed`, data => pushLocalDiff(data));
+          }
         },
         err => reportError(`read ${key}`, err)
       );
-
-      // One-time bootstrap: push whatever already exists locally (e.g.
-      // data created before cloud sync was ever enabled) up to Firebase.
-      pushLocalDiff(store.get(key));
-
-      // Push local changes up to Firebase as they happen, diffed per item.
-      store.on(`${key}:changed`, data => pushLocalDiff(data));
     });
 
     enabled = true;
