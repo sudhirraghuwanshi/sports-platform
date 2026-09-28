@@ -1,6 +1,7 @@
 // service-worker.js
-// Simple cache-first strategy for the app shell; falls back to network.
-const CACHE_NAME = "sports-platform-v1";
+// Network-first for HTML/navigation (always fresh), stale-while-revalidate for other assets.
+// Bump CACHE_NAME on every deploy so old caches are dropped automatically.
+const CACHE_NAME = "sports-platform-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -8,6 +9,7 @@ const APP_SHELL = [
   "./live.html",
   "./umpire.html",
   "./admin.html",
+  "./register.html",
   "./manifest.json",
   "./css/base.css",
   "./css/layout.css",
@@ -20,6 +22,7 @@ const APP_SHELL = [
   "./js/core/auth.js",
   "./js/core/sync.js",
   "./js/core/utils.js",
+  "./js/core/bracket.js",
   "./js/scoring/scoring.engine.js",
   "./js/scoring/racquet.scorer.js",
   "./js/scoring/cue.scorer.js",
@@ -30,7 +33,8 @@ const APP_SHELL = [
   "./js/ui/render.fixtures.js",
   "./js/ui/render.live.js",
   "./js/ui/render.umpire.js",
-  "./js/ui/render.admin.js"
+  "./js/ui/render.admin.js",
+  "./js/ui/render.register.js"
 ];
 
 self.addEventListener("install", event => {
@@ -51,16 +55,34 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request)
+
+  // Navigation (HTML page loads) — always try network first so users get the
+  // latest deployed markup/JS; fall back to cache only if offline.
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
         .then(response => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match("./index.html"));
+        .catch(() => caches.match(event.request).then(cached => cached || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  // Other assets (css/js/icons) — stale-while-revalidate: serve cached copy
+  // instantly but refresh the cache in the background for next time.
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      const networkFetch = fetch(event.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => cached);
+      return cached || networkFetch;
     })
   );
 });
