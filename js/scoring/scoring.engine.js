@@ -31,6 +31,7 @@ const POINT_BASED_SPORTS = new Set(["badminton", "table_tennis", "squash", "tenn
 export function applyEvent(match, eventType, payload = {}) {
   const sport = getSport(match.sportId);
   if (!sport) throw new Error(`Unknown sport: ${match.sportId}`);
+  match.updatedAt = Date.now();
 
   if (eventType === "point" && POINT_BASED_SPORTS.has(match.sportId)) {
     match.pointHistory = match.pointHistory || [];
@@ -90,5 +91,6 @@ export function undoLastPoint(match) {
   match.pointHistory = [];
 
   replay.forEach(side => applyEvent(match, "point", { side }));
+  match.updatedAt = Date.now();
   return true;
 }

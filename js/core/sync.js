@@ -18,6 +18,36 @@ export function isEnabled() {
   return enabled;
 }
 
+// Firebase Realtime Database can return arrays as plain objects keyed by
+// index (e.g. after items were removed leaving gaps). Normalize back to
+// a real array either way.
+function normalizeToArray(val) {
+  if (Array.isArray(val)) return val;
+  if (val && typeof val === "object") return Object.values(val);
+  return [];
+}
+
+// Merge two arrays of records (each with an `id`) by taking, for every id
+// present on either side, whichever copy has the newer `updatedAt`.
+// Items that only exist on one side are always kept (never silently
+// dropped) — this is what prevents a stale/lagging remote snapshot from
+// wiping out a record (e.g. a match) that was only just created locally.
+function mergeById(localArr, remoteArr) {
+  const byId = new Map();
+  localArr.forEach(item => byId.set(item.id, item));
+  remoteArr.forEach(item => {
+    const existing = byId.get(item.id);
+    if (!existing) {
+      byId.set(item.id, item);
+      return;
+    }
+    const existingTs = existing.updatedAt || 0;
+    const incomingTs = item.updatedAt || 0;
+    if (incomingTs > existingTs) byId.set(item.id, item);
+  });
+  return Array.from(byId.values());
+}
+
 export async function init(firebaseConfig) {
   if (!firebaseConfig || !firebaseConfig.apiKey) {
     console.warn("sync.js: no firebaseConfig provided, staying in local mode");
@@ -34,8 +64,7 @@ export async function init(firebaseConfig) {
     db = getDatabase(firebaseApp);
 
     // Track the JSON we most recently sent/received per key so we can avoid
-    // feedback loops between local writes <-> remote echoes, and so a
-    // momentarily-empty remote database doesn't wipe out real local data.
+    // feedback loops between local writes <-> remote echoes.
     const lastPushed = {};
     const lastReceived = {};
 
@@ -43,27 +72,31 @@ export async function init(firebaseConfig) {
       const r = ref(db, key);
 
       onValue(r, snapshot => {
-        const val = snapshot.val();
-        const remoteJson = JSON.stringify(val ?? []);
+        const remoteArr = normalizeToArray(snapshot.val());
+        const remoteJson = JSON.stringify(remoteArr);
 
         // Ignore the echo of a write we just made ourselves.
         if (remoteJson === lastPushed[key]) return;
 
-        const hasRemoteData = val !== null && val !== undefined && (!Array.isArray(val) || val.length > 0);
-        if (!hasRemoteData) {
-          // Remote is empty (e.g. brand-new database, or first connect).
-          // Seed it from whatever we already have locally instead of
-          // wiping local data with an empty value.
-          const localVal = store.get(key);
-          if (localVal && localVal.length > 0) {
-            lastPushed[key] = JSON.stringify(localVal);
-            dbSet(r, localVal);
-          }
-          return;
+        const localArr = store.get(key);
+        const merged = mergeById(localArr, remoteArr);
+        const mergedJson = JSON.stringify(merged);
+
+        // Prevent the store.set below from re-triggering a push of data
+        // that's simply what we just received/merged.
+        lastReceived[key] = mergedJson;
+
+        if (mergedJson !== JSON.stringify(localArr)) {
+          store.set(key, merged); // updates local cache + notifies UI
         }
 
-        lastReceived[key] = remoteJson;
-        store.set(key, val); // reuse local store as cache + emit UI updates
+        // If the merge added/kept anything the remote didn't have (e.g. a
+        // brand-new local match), push the reconciled version back up so
+        // every other device converges on the same data too.
+        if (mergedJson !== remoteJson) {
+          lastPushed[key] = mergedJson;
+          dbSet(r, merged);
+        }
       });
 
       // Push local changes up to Firebase, but skip re-pushing data that

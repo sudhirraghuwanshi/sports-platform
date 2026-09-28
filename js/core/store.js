@@ -52,16 +52,17 @@ export function init() {
 // Convenience helpers
 export function add(key, item) {
   const list = get(key);
-  list.push(item);
+  const stamped = { updatedAt: Date.now(), ...item };
+  list.push(stamped);
   set(key, list);
-  return item;
+  return stamped;
 }
 
 export function update(key, id, patch) {
   const list = get(key);
   const idx = list.findIndex(x => x.id === id);
   if (idx === -1) return null;
-  list[idx] = { ...list[idx], ...patch };
+  list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
   set(key, list);
   return list[idx];
 }
