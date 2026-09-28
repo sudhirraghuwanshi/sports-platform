@@ -38,6 +38,7 @@ export function initAdminPage() {
   bindFixtureForm();
   bindGenerateFixturesForm();
   bindCloudSyncForm();
+  bindClearRegistrationsButton();
 }
 
 function renderAll() {
@@ -195,6 +196,23 @@ function renderFixturesList() {
       store.remove("fixtures", btn.dataset.removeFixture);
       renderFixturesList();
     });
+  });
+}
+
+function bindClearRegistrationsButton() {
+  const btn = qs("#clear-registrations-btn");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const current = store.get("registrations");
+    if (current.length === 0) {
+      alert("No registrations to clear.");
+      return;
+    }
+    if (!confirm(`Delete all ${current.length} registration(s)? This also clears them from cloud sync for every device.`)) {
+      return;
+    }
+    store.set("registrations", []);
+    renderRegistrationsList();
   });
 }
 
