@@ -7,6 +7,35 @@ import { firebaseConfig } from "./config/firebase.config.js";
 
 store.init();
 
+// --- Visible cloud-sync status badge (works on every page, no DevTools needed) ---
+function ensureSyncBadge() {
+  let badge = document.getElementById("global-sync-badge");
+  if (badge) return badge;
+  badge = document.createElement("span");
+  badge.id = "global-sync-badge";
+  badge.style.cssText =
+    "display:inline-block;margin-left:8px;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;vertical-align:middle;";
+  const header = document.querySelector(".app-header .brand");
+  if (header) header.appendChild(badge);
+  else document.body.prepend(badge);
+  return badge;
+}
+
+function setSyncBadge(text, kind) {
+  const badge = ensureSyncBadge();
+  const colors = {
+    connecting: ["#fff3cd", "#856404"],
+    connected: ["#d4edda", "#155724"],
+    error: ["#f8d7da", "#721c24"],
+    off: ["#e2e3e5", "#383d41"],
+  };
+  const [bg, fg] = colors[kind] || colors.off;
+  badge.style.background = bg;
+  badge.style.color = fg;
+  badge.textContent = text;
+  badge.title = text;
+}
+
 // Cloud sync auto-connects for every visitor using the config baked into
 // js/config/firebase.config.js (no per-device setup required). An admin can
 // still override this at runtime via the Admin panel's Cloud Sync form,
@@ -17,20 +46,27 @@ const activeFirebaseConfig = settings?.cloudMode && settings?.firebaseConfig
   : firebaseConfig;
 
 if (activeFirebaseConfig?.apiKey) {
+  setSyncBadge("Cloud sync: connecting…", "connecting");
   sync.onError(err => {
     console.error(`[cloud sync error] ${err.context}: ${err.message}`);
+    setSyncBadge(`Cloud sync error [${err.context}]: ${err.message}`, "error");
   });
   sync.init(activeFirebaseConfig).then(ok => {
     if (ok) {
       console.info("Cloud sync enabled — updates will appear on all devices.");
+      setSyncBadge("Cloud sync: connected ✓", "connected");
     } else {
       const err = sync.getLastError();
+      const msg = err ? `${err.context}: ${err.message}` : "unknown error";
       console.warn(
         "Cloud sync failed to start" + (err ? ` [${err.context}]: ${err.message}` : ""),
         "— open the Admin panel's Cloud Sync section for details, or check this console for the exact Firebase error."
       );
+      setSyncBadge(`Cloud sync failed: ${msg}`, "error");
     }
   });
+} else {
+  setSyncBadge("Cloud sync: OFF (no config)", "off");
 }
 
 if ("serviceWorker" in navigator) {
