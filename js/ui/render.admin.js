@@ -8,24 +8,41 @@ import { generateBracket } from "../core/bracket.js";
 import { qs, qsa } from "../core/utils.js";
 
 export function initAdminPage() {
+  console.log("[admin] initAdminPage running");
   if (!auth.hasAdminPassword()) {
     auth.setAdminPassword("admin123"); // default; instruct user to change in README
+  }
+
+  function doLogin() {
+    const pass = qs("#admin-pass")?.value ?? "";
+    console.log("[admin] login attempt");
+    if (auth.loginAdmin(pass)) {
+      console.log("[admin] login OK");
+      qs("#admin-login")?.classList.add("hidden");
+      qs("#admin-panel")?.classList.remove("hidden");
+      renderAll();
+    } else {
+      console.log("[admin] login rejected — password mismatch");
+      const errEl = qs("#admin-login-error");
+      if (errEl) errEl.textContent = "Invalid password. If you forgot it, click \u201cReset to admin123\u201d below.";
+    }
   }
 
   const loginForm = qs("#admin-login-form");
   if (loginForm) {
     loginForm.addEventListener("submit", e => {
       e.preventDefault();
-      const pass = qs("#admin-pass").value;
-      if (auth.loginAdmin(pass)) {
-        qs("#admin-login").classList.add("hidden");
-        qs("#admin-panel").classList.remove("hidden");
-        renderAll();
-      } else {
-        qs("#admin-login-error").textContent = "Invalid password";
-      }
+      doLogin();
     });
+  } else {
+    console.warn("[admin] #admin-login-form not found in DOM");
   }
+  // Fallback: also handle a direct click on the submit button, in case the
+  // form's submit event is ever suppressed/intercepted for any reason.
+  qs("#admin-login-form button[type=submit]")?.addEventListener("click", e => {
+    e.preventDefault();
+    doLogin();
+  });
 
   // Escape hatch: if the stored admin password on this device somehow
   // diverged from the documented default (e.g. it was changed once during
