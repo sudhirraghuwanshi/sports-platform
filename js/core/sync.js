@@ -33,17 +33,47 @@ export async function init(firebaseConfig) {
     firebaseApp = initializeApp(firebaseConfig);
     db = getDatabase(firebaseApp);
 
+    // Track the JSON we most recently sent/received per key so we can avoid
+    // feedback loops between local writes <-> remote echoes, and so a
+    // momentarily-empty remote database doesn't wipe out real local data.
+    const lastPushed = {};
+    const lastReceived = {};
+
     SYNCED_KEYS.forEach(key => {
       const r = ref(db, key);
+
       onValue(r, snapshot => {
-        const val = snapshot.val() || [];
+        const val = snapshot.val();
+        const remoteJson = JSON.stringify(val ?? []);
+
+        // Ignore the echo of a write we just made ourselves.
+        if (remoteJson === lastPushed[key]) return;
+
+        const hasRemoteData = val !== null && val !== undefined && (!Array.isArray(val) || val.length > 0);
+        if (!hasRemoteData) {
+          // Remote is empty (e.g. brand-new database, or first connect).
+          // Seed it from whatever we already have locally instead of
+          // wiping local data with an empty value.
+          const localVal = store.get(key);
+          if (localVal && localVal.length > 0) {
+            lastPushed[key] = JSON.stringify(localVal);
+            dbSet(r, localVal);
+          }
+          return;
+        }
+
+        lastReceived[key] = remoteJson;
         store.set(key, val); // reuse local store as cache + emit UI updates
       });
 
-      // Push local changes up to Firebase (skip the change that just came
-      // from Firebase itself would be ideal, but Firebase's onValue only
-      // fires when data actually differs, so this is safe against loops).
-      store.on(`${key}:changed`, data => dbSet(r, data));
+      // Push local changes up to Firebase, but skip re-pushing data that
+      // just arrived from Firebase itself (prevents ping-pong loops).
+      store.on(`${key}:changed`, data => {
+        const json = JSON.stringify(data);
+        if (json === lastReceived[key]) return;
+        lastPushed[key] = json;
+        dbSet(r, data);
+      });
     });
 
     enabled = true;
