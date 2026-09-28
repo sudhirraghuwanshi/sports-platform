@@ -40,12 +40,21 @@ function participantNames(ids, participants) {
 function scoreLine(match) {
   if (!match) return "Not started yet";
   const state = match.state || {};
-  if (state.sets) return state.sets.map(s => `${s.a}-${s.b}`).join(" | ");
+  if (state.sets) {
+    return state.sets.map(s => `${s.a}-${s.b}${isDeuce(s) ? " (deuce)" : ""}`).join(" | ");
+  }
   if (state.frames) return state.frames.map(f => `${f.a}-${f.b}`).join(" | ");
   if (state.boards) return state.boards.map(b => `${b.a}-${b.b}`).join(" | ");
   if (state.points) return `${state.points.a} - ${state.points.b}`;
   if (state.innings) return state.innings.map(i => `${i.battingSide}: ${i.runs}/${i.wickets} (${i.overs} ov)`).join(" | ");
   return "In progress";
+}
+
+// See render.umpire.js for the matching rationale.
+function isDeuce(set) {
+  const min = Math.min(set.a, set.b);
+  const diff = Math.abs(set.a - set.b);
+  return min >= 19 && diff < 2 && Math.max(set.a, set.b) >= 20;
 }
 
 export function openMatchModal(fixtureId) {

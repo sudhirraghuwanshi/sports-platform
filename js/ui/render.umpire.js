@@ -131,6 +131,19 @@ function handleUndo() {
 
 function scoreLine(match) {
   const state = match.state || {};
-  if (state.sets) return state.sets.map(s => `${s.a}-${s.b}`).join(" | ");
+  if (state.sets) {
+    return state.sets.map(s => `${s.a}-${s.b}${isDeuce(s) ? " (deuce)" : ""}`).join(" | ");
+  }
   return JSON.stringify(state);
+}
+
+// A set is "in deuce" once both sides have reached at least 19 points and
+// are within one point of each other while the leader is at least 20 —
+// i.e. play must continue past the normal target score until someone
+// leads by 2 (or hits the cap). This makes win-by-2 finishes like 23-21
+// visually obvious instead of looking like an unexplained overrun.
+function isDeuce(set) {
+  const min = Math.min(set.a, set.b);
+  const diff = Math.abs(set.a - set.b);
+  return min >= 19 && diff < 2 && Math.max(set.a, set.b) >= 20;
 }

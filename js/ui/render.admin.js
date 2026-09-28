@@ -39,6 +39,7 @@ export function initAdminPage() {
   bindGenerateFixturesForm();
   bindCloudSyncForm();
   bindClearRegistrationsButton();
+  bindClearFixturesButton();
 
   // Cloud sync connects asynchronously (it lazy-loads Firebase from a CDN),
   // so remote data — e.g. registrations submitted from another device —
@@ -222,6 +223,29 @@ function bindClearRegistrationsButton() {
     }
     store.set("registrations", []);
     renderRegistrationsList();
+  });
+}
+
+function bindClearFixturesButton() {
+  const btn = qs("#clear-fixtures-btn");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const fixtures = store.get("fixtures");
+    const matches = store.get("matches");
+    if (fixtures.length === 0 && matches.length === 0) {
+      alert("No fixtures or matches to clear.");
+      return;
+    }
+    if (
+      !confirm(
+        `Delete all ${fixtures.length} fixture(s) and ${matches.length} match(es)? This also clears them from cloud sync for every device (e.g. old test data on the Live Scores page).`
+      )
+    ) {
+      return;
+    }
+    store.set("fixtures", []);
+    store.set("matches", []);
+    renderFixturesList();
   });
 }
 
