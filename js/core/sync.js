@@ -135,28 +135,40 @@ export async function init(firebaseConfig) {
           const merged = mergeById(localArr, remoteArr);
 
           // Record what we now believe is synced for every item in the
-          // merged result so the local "changed" handler below won't
-          // needlessly re-push items that just arrived from Firebase.
+          // merged result so the pushLocalDiff call below won't needlessly
+          // re-push items that just arrived from Firebase.
           merged.forEach(item => lastSyncedById.set(item.id, item.updatedAt || 0));
 
           if (JSON.stringify(merged) !== JSON.stringify(localArr)) {
             store.set(key, merged); // updates local cache + notifies UI
           }
 
-          // Only after we've reconciled with the real remote state at
-          // least once do we start pushing local changes up. Pushing
-          // *before* this point (using only whatever was cached locally
-          // from a previous session) is exactly what let deleted
-          // fixtures/matches keep reappearing: a stale tab would blindly
-          // re-upload old data it hadn't yet learned was deleted elsewhere.
           if (!gotFirstSnapshot) {
             gotFirstSnapshot = true;
+            // Flush any local change (create/edit/delete) that happened
+            // *before* this first snapshot arrived. Previously the
+            // store.on subscription below was only registered at this
+            // point, meaning a change made in that window (e.g. clicking
+            // "Generate All Fixtures" or "Clear All" right after page
+            // load, before Firebase's first response came back) was
+            // silently dropped — never pushed to the server at all. That
+            // in turn let stale remote data "reappear" alongside brand
+            // new local data, producing duplicate sets. Calling this here
+            // with the freshest local state guarantees nothing is missed.
             pushLocalDiff(store.get(key));
-            store.on(`${key}:changed`, data => pushLocalDiff(data));
           }
         },
         err => reportError(`read ${key}`, err)
       );
+
+      // Always listen for local changes from the very start (not gated on
+      // the first remote snapshot) so nothing created/edited/deleted
+      // before Firebase responds is ever silently lost. pushLocalDiff
+      // itself no-ops until gotFirstSnapshot is true.
+      store.on(`${key}:changed`, data => {
+        if (!gotFirstSnapshot) return; // will be flushed by the onValue handler above once it fires
+        pushLocalDiff(data);
+      });
     });
 
     enabled = true;
