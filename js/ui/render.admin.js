@@ -68,18 +68,24 @@ export function initAdminPage() {
   bindCloudSyncForm();
   bindClearRegistrationsButton();
   bindClearFixturesButton();
+  bindEventFilters();
 
   // Cloud sync connects asynchronously (it lazy-loads Firebase from a CDN),
   // so remote data — e.g. registrations submitted from another device —
   // can arrive well after this page's initial render. Re-render the
   // affected lists whenever the underlying store data changes so nothing
   // gets silently missed.
-  store.on("registrations:changed", renderRegistrationsList);
+  store.on("registrations:changed", () => {
+    syncRegistrationsToParticipants();
+    renderRegistrationsList();
+    renderParticipantsList();
+  });
   store.on("participants:changed", renderParticipantsList);
   store.on("fixtures:changed", renderFixturesList);
 }
 
 function renderAll() {
+  syncRegistrationsToParticipants();
   renderSportOptions("#fixture-sport", "#fixture-category");
   renderSportOptions("#gen-sport", "#gen-category");
   renderParticipantsList();
@@ -89,9 +95,86 @@ function renderAll() {
   renderFixtureSideSelects();
 }
 
-function renderFixtureSideSelects() {
+// Registered players live in the "registrations" collection, while fixtures
+// are built from the "participants" pool. To make registered players show up
+// automatically (and be usable when creating fixtures) we mirror each
+// registration into a participant record tagged with its registrationId and
+// the events (sport + category) the player signed up for. Manually-added
+// participants (no registrationId) are left untouched.
+function syncRegistrationsToParticipants() {
+  const registrations = store.get("registrations");
   const participants = store.get("participants");
-  const options = participants.map(p => `<option value="${p.id}">${p.name} (${p.gender})</option>`).join("");
+  const regIds = new Set(registrations.map(r => r.id));
+  let changed = false;
+
+  registrations.forEach(r => {
+    let p = participants.find(x => x.registrationId === r.id);
+    if (!p) {
+      p = {
+        ...createParticipant({ name: r.name, gender: r.gender }),
+        registrationId: r.id,
+        selections: r.selections || []
+      };
+      participants.push(p);
+      changed = true;
+    } else {
+      const newSel = JSON.stringify(r.selections || []);
+      if (p.name !== r.name || p.gender !== r.gender || JSON.stringify(p.selections || []) !== newSel) {
+        p.name = r.name;
+        p.gender = r.gender;
+        p.selections = r.selections || [];
+        p.updatedAt = Date.now();
+        changed = true;
+      }
+    }
+  });
+
+  // Drop derived participants whose source registration was removed.
+  for (let i = participants.length - 1; i >= 0; i--) {
+    const p = participants[i];
+    if (p.registrationId && !regIds.has(p.registrationId)) {
+      participants.splice(i, 1);
+      changed = true;
+    }
+  }
+
+  if (changed) store.set("participants", participants);
+}
+
+// A participant is eligible for an event if they registered for that exact
+// sport + category. Manually-added participants (no selections) stay
+// available for every event so the manual workflow isn't restricted.
+function participantEligible(p, sportId, categoryId) {
+  if (!p.selections || p.selections.length === 0) return true;
+  return p.selections.some(
+    s => s.sportId === sportId && (!categoryId || (s.categoryIds || []).includes(categoryId))
+  );
+}
+
+// Re-render the fixture-creation player pickers whenever the selected event
+// (sport/category) changes, so only players registered for that event show.
+function bindEventFilters() {
+  qs("#fixture-sport")?.addEventListener("change", () => {
+    renderCategoryOptions("#fixture-sport", "#fixture-category");
+    renderFixtureSideSelects();
+  });
+  qs("#fixture-category")?.addEventListener("change", renderFixtureSideSelects);
+  qs("#gen-sport")?.addEventListener("change", () => {
+    renderCategoryOptions("#gen-sport", "#gen-category");
+    renderGenParticipantsList();
+  });
+  qs("#gen-category")?.addEventListener("change", renderGenParticipantsList);
+}
+
+function renderFixtureSideSelects() {
+  const sportId = qs("#fixture-sport")?.value;
+  const categoryId = qs("#fixture-category")?.value;
+  const participants = store
+    .get("participants")
+    .filter(p => participantEligible(p, sportId, categoryId));
+  const options = participants.length
+    ? participants.map(p => `<option value="${p.id}">${p.name} (${p.gender})</option>`).join("")
+    : `<option value="" disabled>No players registered for this event</option>`;
   const sideA = qs("#fixture-side-a");
   const sideB = qs("#fixture-side-b");
   if (sideA) sideA.innerHTML = options;
@@ -173,9 +256,13 @@ function renderParticipantsList() {
 function renderGenParticipantsList() {
   const container = qs("#gen-participants-list");
   if (!container) return;
-  const participants = store.get("participants");
+  const sportId = qs("#gen-sport")?.value;
+  const categoryId = qs("#gen-category")?.value;
+  const participants = store
+    .get("participants")
+    .filter(p => participantEligible(p, sportId, categoryId));
   if (participants.length === 0) {
-    container.innerHTML = `<span class="hint">Add players first.</span>`;
+    container.innerHTML = `<span class="hint">No players registered for this event yet.</span>`;
     return;
   }
   container.innerHTML = participants.map(p => `
