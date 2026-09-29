@@ -156,7 +156,15 @@ function scoreLine(match) {
   if (state.sets) {
     return state.sets.map(s => `${s.a}-${s.b}${isDeuce(s) ? " (deuce)" : ""}`).join(" | ");
   }
-  return JSON.stringify(state);
+  if (state.frames) return state.frames.map(f => `${f.a}-${f.b}`).join(" | ");
+  if (state.boards) return state.boards.map(b => `${b.a}-${b.b}`).join(" | ");
+  if (state.points) return `${state.points.a} - ${state.points.b}`;
+  if (state.innings) {
+    return state.innings.map(i => `${i.battingSide}: ${i.runs}/${i.wickets} (${i.overs} ov)`).join(" | ");
+  }
+  if (state.result) return state.result;
+  if (state.lanes) return state.lanes.map(l => `Lane ${l.lane}: ${l.timeMs ? (l.timeMs / 1000).toFixed(2) + "s" : "—"}`).join(" | ");
+  return "0 - 0";
 }
 
 // A set is "in deuce" once both sides have reached at least 19 points and

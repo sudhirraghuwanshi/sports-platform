@@ -1,7 +1,7 @@
 // service-worker.js
 // Network-first for HTML/navigation (always fresh), stale-while-revalidate for other assets.
 // Bump CACHE_NAME on every deploy so old caches are dropped automatically.
-const CACHE_NAME = "sports-platform-v29";
+const CACHE_NAME = "sports-platform-v30";
 const APP_SHELL = [
   "./",
   "./index.html",
