@@ -240,7 +240,22 @@ function renderParticipantsList() {
   const list = qs("#participants-list");
   const participants = store.get("participants");
   if (list) {
-    list.innerHTML = participants.map(p => `<li>${p.name} (${p.gender}) <button data-remove-participant="${p.id}">Remove</button></li>`).join("");
+    list.innerHTML = participants.map(p => {
+      const events = (p.selections || []).map(s => {
+        const sport = getSport(s.sportId);
+        const labels = (s.categoryIds || [])
+          .map(cid => sport?.categories.find(c => c.id === cid)?.label || cid)
+          .join(", ");
+        return `<span class="sport-${s.sportId} badge">${sport ? sport.name : s.sportId}</span> ${labels}`;
+      }).join("<br/>");
+      const eventsHtml = events
+        ? `<div class="match-meta" style="margin-top:4px;">${events}</div>`
+        : `<div class="match-meta" style="margin-top:4px;"><span class="hint">Manually added (all events)</span></div>`;
+      return `<li>
+        <div><strong>${p.name}</strong> (${p.gender}) <button data-remove-participant="${p.id}">Remove</button></div>
+        ${eventsHtml}
+      </li>`;
+    }).join("");
 
     qsa("[data-remove-participant]", list).forEach(btn => {
       btn.addEventListener("click", () => {
