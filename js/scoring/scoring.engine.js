@@ -33,12 +33,12 @@ export function applyEvent(match, eventType, payload = {}) {
   if (!sport) throw new Error(`Unknown sport: ${match.sportId}`);
 
   // Hard guard: once a match has a decided result, no further scoring
-  // events should be able to change it. Without this, clicking a point
-  // button after the final (deciding) set had already been won would
-  // keep incrementing that same finished set forever, since there is no
-  // "next set" to roll over into on the last game of the match.
-  if (eventType === "point" && match.endedAt) {
-    console.warn("Ignored point event: match already completed", match.id);
+  // events should be able to change it. Without this, clicking a scoring
+  // button after the deciding set/frame/board had already been won would
+  // keep incrementing that same finished unit forever.
+  const SCORING_EVENTS = ["point", "frame_points", "frameWon", "points", "board_points", "ball"];
+  if (SCORING_EVENTS.includes(eventType) && match.endedAt) {
+    console.warn(`Ignored ${eventType} event: match already completed`, match.id);
     return match;
   }
 
@@ -102,6 +102,53 @@ export function undoLastPoint(match) {
   match.pointHistory = [];
 
   replay.forEach(side => applyEvent(match, "point", { side }));
+  match.updatedAt = Date.now();
+  return true;
+}
+
+// The "input" events an umpire actually triggers (as opposed to derived
+// events like setWon/boardWon that a scorer emits automatically). Only
+// these are replayed when undoing, so the scorers regenerate the derived
+// events themselves.
+const INPUT_EVENT_TYPES = new Set([
+  "point", "frame_points", "frameWon", "points", "board_points", "ball", "result", "laneTime"
+]);
+
+function replayInputEvent(match, ev) {
+  const side = ev.side;
+  switch (ev.type) {
+    case "point": return applyEvent(match, "point", { side });
+    case "frame_points": return applyEvent(match, "frame_points", { side, points: ev.value ?? 1 });
+    case "frameWon": return applyEvent(match, "frameWon", { side });
+    case "points": return applyEvent(match, "points", { side, points: ev.value ?? 1 });
+    case "board_points": return applyEvent(match, "board_points", { side, points: ev.value ?? 1 });
+    case "ball": return applyEvent(match, "ball", ev.payload || {});
+    case "result": return applyEvent(match, "result", { outcome: ev.outcome });
+    case "laneTime": return applyEvent(match, "laneTime", { lane: ev.lane, timeMs: ev.timeMs });
+    default: return match;
+  }
+}
+
+// Generic undo for ALL sports: rebuild state from scratch and replay every
+// umpire-input event except the most recent one. For point-based racquet
+// sports this defers to the pointHistory-based fast path above.
+export function undoLast(match) {
+  if (POINT_BASED_SPORTS.has(match.sportId)) return undoLastPoint(match);
+
+  const events = match.events || [];
+  let lastInputIdx = -1;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (INPUT_EVENT_TYPES.has(events[i].type)) { lastInputIdx = i; break; }
+  }
+  if (lastInputIdx === -1) return false;
+
+  const replay = events.slice(0, lastInputIdx).filter(ev => INPUT_EVENT_TYPES.has(ev.type));
+  match.state = createInitialState(match.sportId);
+  match.events = [];
+  match.result = { winnerSide: null, summary: "" };
+  match.endedAt = null;
+
+  replay.forEach(ev => replayInputEvent(match, ev));
   match.updatedAt = Date.now();
   return true;
 }

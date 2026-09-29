@@ -3,7 +3,7 @@ import * as store from "../core/store.js";
 import * as auth from "../core/auth.js";
 import { getSport } from "../config/sports.config.js";
 import { createMatch } from "../core/models.js";
-import { createInitialState, applyEvent, undoLastPoint } from "../scoring/scoring.engine.js";
+import { createInitialState, applyEvent, undoLast } from "../scoring/scoring.engine.js";
 import { qs } from "../core/utils.js";
 
 let activeFixtureId = null;
@@ -81,6 +81,16 @@ function renderConsole() {
   const isCompleted = !!match.endedAt;
   qs("#btn-point-a")?.toggleAttribute("disabled", isCompleted);
   qs("#btn-point-b")?.toggleAttribute("disabled", isCompleted);
+
+  // Snooker frames only close via an explicit "frame won" action, so show
+  // an End Frame control for it (awards the current frame to whoever leads
+  // and advances to the next frame / decides the match).
+  const endFrameBtn = qs("#btn-end-frame");
+  if (endFrameBtn) {
+    const showEndFrame = fixture.sportId === "snooker";
+    endFrameBtn.classList.toggle("hidden", !showEndFrame);
+    endFrameBtn.toggleAttribute("disabled", isCompleted);
+  }
   const banner = qs("#umpire-completed-banner");
   if (banner) {
     if (isCompleted) {
@@ -102,6 +112,7 @@ function renderConsole() {
   if (!listenersBound) {
     qs("#btn-point-a")?.addEventListener("click", () => handlePoint("A"));
     qs("#btn-point-b")?.addEventListener("click", () => handlePoint("B"));
+    qs("#btn-end-frame")?.addEventListener("click", handleEndFrame);
     qs("#btn-undo")?.addEventListener("click", handleUndo);
     listenersBound = true;
   }
@@ -110,6 +121,18 @@ function renderConsole() {
 function sideNames(ids, participants) {
   if (!ids || ids.length === 0) return "";
   return ids.map(id => participants.find(p => p.id === id)?.name || "TBD").join(" / ");
+}
+
+// Map a generic "+1" button press to the scoring event the current sport
+// actually understands. Point-based racquet sports use "point"; cue sports
+// add a single point to the current frame/points/board.
+function scoreEventFor(sportId, side) {
+  switch (sportId) {
+    case "snooker": return { type: "frame_points", payload: { side, points: 1 } };
+    case "billiards": return { type: "points", payload: { side, points: 1 } };
+    case "carrom": return { type: "board_points", payload: { side, points: 1 } };
+    default: return { type: "point", payload: { side } };
+  }
 }
 
 function handlePoint(side) {
@@ -121,7 +144,33 @@ function handlePoint(side) {
   if (!match) return;
   if (match.endedAt) return; // match already decided; renderConsole disables the buttons for this too
 
-  applyEvent(match, "point", { side });
+  const { type, payload } = scoreEventFor(fixture.sportId, side);
+  applyEvent(match, type, payload);
+  store.set("matches", matches.map(m => (m.id === match.id ? match : m)));
+
+  if (match.endedAt) {
+    store.update("fixtures", match.fixtureId, { status: "completed" });
+  }
+}
+
+// Snooker: close the current frame, awarding it to whichever side leads on
+// points (advances to the next frame or ends the match).
+function handleEndFrame() {
+  const fixtures = store.get("fixtures");
+  const fixture = fixtures.find(f => f.id === activeFixtureId);
+  if (!fixture) return;
+  const matches = store.get("matches");
+  const match = matches.find(m => m.id === fixture.matchId) || matches.find(m => m.fixtureId === fixture.id);
+  if (!match || match.endedAt) return;
+
+  const frame = match.state?.frames?.[match.state.currentFrame];
+  if (!frame) return;
+  if (frame.a === frame.b) {
+    alert("The frame is tied — add a point to the leader before ending it.");
+    return;
+  }
+  const winner = frame.a > frame.b ? "A" : "B";
+  applyEvent(match, "frameWon", { side: winner });
   store.set("matches", matches.map(m => (m.id === match.id ? match : m)));
 
   if (match.endedAt) {
@@ -138,7 +187,7 @@ function handleUndo() {
   if (!match) return;
 
   const wasCompleted = !!match.endedAt;
-  const undone = undoLastPoint(match);
+  const undone = undoLast(match);
   if (!undone) {
     alert("Nothing to undo yet.");
     return;
